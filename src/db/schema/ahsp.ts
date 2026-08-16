@@ -3,11 +3,22 @@ import { workComponents } from "./building-types";
 import { materials } from "./materials";
 import { laborTypes } from "./labor";
 
+export const componentVariants = sqliteTable("component_variants", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  workComponentId: integer("work_component_id")
+    .notNull()
+    .references(() => workComponents.id),
+  slug: text("slug").notNull(),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull(),
+});
+
 export const ahspCoefficients = sqliteTable("ahsp_coefficients", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   workComponentId: integer("work_component_id")
     .notNull()
     .references(() => workComponents.id),
+  variantId: integer("variant_id").references(() => componentVariants.id),
   materialId: integer("material_id").references(() => materials.id),
   materialCoefficient: real("material_coefficient"),
   laborTypeId: integer("labor_type_id").references(() => laborTypes.id),

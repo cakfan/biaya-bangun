@@ -2,12 +2,26 @@
 
 import { calculateBuildingCost } from "@/lib/calculation/calculate-building-cost";
 import { loadEstimateInput } from "@/lib/calculation/load-estimate-input";
+import type { SelectedVariants } from "@/lib/calculation/load-estimate-input";
 import type { BuildingCostEstimate } from "@/lib/calculation/types";
+import { VARIANT_FIELD_PREFIX } from "@/lib/calculation/types";
 
 export type EstimateFormState = {
   estimate: BuildingCostEstimate | null;
   error: string | null;
 };
+
+function readSelectedVariants(formData: FormData): SelectedVariants {
+  const selectedVariants: SelectedVariants = {};
+  for (const [fieldName, value] of formData.entries()) {
+    if (fieldName.startsWith(VARIANT_FIELD_PREFIX)) {
+      const componentSlug = fieldName.slice(VARIANT_FIELD_PREFIX.length);
+      const variantSlug = String(value).trim();
+      selectedVariants[componentSlug] = variantSlug === "" ? null : variantSlug;
+    }
+  }
+  return selectedVariants;
+}
 
 export async function calculateEstimateAction(
   _previousState: EstimateFormState,
@@ -29,7 +43,7 @@ export async function calculateEstimateAction(
 
   try {
     const estimate = calculateBuildingCost(
-      loadEstimateInput(buildingTypeSlug, buildingArea, city),
+      loadEstimateInput(buildingTypeSlug, buildingArea, city, readSelectedVariants(formData)),
     );
     return { estimate, error: null };
   } catch (error) {

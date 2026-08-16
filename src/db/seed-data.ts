@@ -1,15 +1,23 @@
-export const CITY_SURABAYA = "Surabaya";
+export type CitySeed = {
+  name: string;
+  materialIndex: number;
+  laborIndex: number;
+};
+
+export const CITIES: CitySeed[] = [
+  { name: "Surabaya", materialIndex: 1, laborIndex: 1 },
+  { name: "Malang", materialIndex: 0.98, laborIndex: 0.95 },
+  { name: "Jember", materialIndex: 0.92, laborIndex: 0.88 },
+  { name: "Jakarta", materialIndex: 1.15, laborIndex: 1.25 },
+  { name: "Bandung", materialIndex: 1.05, laborIndex: 1.1 },
+  { name: "Semarang", materialIndex: 0.95, laborIndex: 0.95 },
+  { name: "Yogyakarta", materialIndex: 0.9, laborIndex: 0.9 },
+];
+
+export const CITY_SURABAYA = CITIES[0].name;
 export const PRICE_SOURCE_MANUAL = "manual";
 
 export const DEFAULT_OVERHEAD_PROFIT_RATE = 0.1;
-
-export const BUILDING_TYPE_RUMAH_TIPE_36 = {
-  slug: "rumah-tipe-36",
-  name: "Rumah Tipe 36",
-  description:
-    "Rumah tinggal satu lantai dengan luas bangunan 36 m². Komponen volume mengikuti standar RAB rumah tipe 36 (1 lantai, pondasi batu kali, struktur beton bertulang, atap genteng keramik).",
-  defaultBuildingArea: 36,
-};
 
 export type WorkComponentSeed = {
   slug: string;
@@ -19,7 +27,7 @@ export type WorkComponentSeed = {
   volumeMultiplierPerSquareMeter: number;
 };
 
-export const WORK_COMPONENTS: WorkComponentSeed[] = [
+const HOUSE_COMPONENTS: WorkComponentSeed[] = [
   {
     slug: "pekerjaan-persiapan",
     name: "Pekerjaan Persiapan",
@@ -92,7 +100,7 @@ export const WORK_COMPONENTS: WorkComponentSeed[] = [
   },
   {
     slug: "atap",
-    name: "Rangka Atap Kayu Kelas II + Genteng Keramik",
+    name: "Pekerjaan Atap (Rangka + Penutup)",
     unit: "m2",
     sortOrder: 11,
     volumeMultiplierPerSquareMeter: 1.7,
@@ -127,49 +135,271 @@ export const WORK_COMPONENTS: WorkComponentSeed[] = [
   },
 ];
 
+const GARASI_COMPONENTS: WorkComponentSeed[] = [
+  {
+    slug: "pekerjaan-persiapan",
+    name: "Pekerjaan Persiapan",
+    unit: "m2",
+    sortOrder: 1,
+    volumeMultiplierPerSquareMeter: 1,
+  },
+  {
+    slug: "galian-tanah",
+    name: "Galian Tanah Pondasi",
+    unit: "m3",
+    sortOrder: 2,
+    volumeMultiplierPerSquareMeter: 0.3,
+  },
+  {
+    slug: "urugan-pasir",
+    name: "Urugan Pasir Bawah Pondasi",
+    unit: "m3",
+    sortOrder: 3,
+    volumeMultiplierPerSquareMeter: 0.06,
+  },
+  {
+    slug: "pondasi-batu-kali",
+    name: "Pasangan Pondasi Batu Kali (1 PC : 4 PP)",
+    unit: "m3",
+    sortOrder: 4,
+    volumeMultiplierPerSquareMeter: 0.2,
+  },
+  {
+    slug: "sloof-beton",
+    name: "Sloof Beton Bertulang (200 kg besi)",
+    unit: "m3",
+    sortOrder: 5,
+    volumeMultiplierPerSquareMeter: 0.04,
+  },
+  {
+    slug: "kolom-beton",
+    name: "Kolom Beton Bertulang (300 kg besi)",
+    unit: "m3",
+    sortOrder: 6,
+    volumeMultiplierPerSquareMeter: 0.018,
+  },
+  {
+    slug: "ring-balok",
+    name: "Ring Balok Beton Bertulang (10 x 15) cm",
+    unit: "m1",
+    sortOrder: 7,
+    volumeMultiplierPerSquareMeter: 1.2,
+  },
+  {
+    slug: "dinding-bata",
+    name: "Dinding Bata Merah 1/2 Batu (1 SP : 4 PP)",
+    unit: "m2",
+    sortOrder: 8,
+    volumeMultiplierPerSquareMeter: 2.2,
+  },
+  {
+    slug: "plesteran-acian",
+    name: "Plesteran & Acian Dinding",
+    unit: "m2",
+    sortOrder: 9,
+    volumeMultiplierPerSquareMeter: 4.2,
+  },
+  {
+    slug: "lantai-rabat-beton",
+    name: "Lantai Rabat Beton (t = 10 cm)",
+    unit: "m2",
+    sortOrder: 10,
+    volumeMultiplierPerSquareMeter: 1,
+  },
+  {
+    slug: "atap",
+    name: "Pekerjaan Atap (Rangka + Penutup)",
+    unit: "m2",
+    sortOrder: 11,
+    volumeMultiplierPerSquareMeter: 1.7,
+  },
+  {
+    slug: "kusen-pintu",
+    name: "Kusen Pintu & Jendela Kayu Kelas II",
+    unit: "m3",
+    sortOrder: 12,
+    volumeMultiplierPerSquareMeter: 0.005,
+  },
+  {
+    slug: "daun-pintu",
+    name: "Daun Pintu Panel Kayu Kelas II",
+    unit: "m2",
+    sortOrder: 13,
+    volumeMultiplierPerSquareMeter: 0.1,
+  },
+  {
+    slug: "pintu-garasi",
+    name: "Rolling Door Besi",
+    unit: "m2",
+    sortOrder: 14,
+    volumeMultiplierPerSquareMeter: 1,
+  },
+  {
+    slug: "pengecatan",
+    name: "Pengecatan Tembok Baru (Cat Dasar + 2 Lapis)",
+    unit: "m2",
+    sortOrder: 15,
+    volumeMultiplierPerSquareMeter: 2.2,
+  },
+];
+
+const PARKIRAN_COMPONENTS: WorkComponentSeed[] = [
+  {
+    slug: "pekerjaan-persiapan",
+    name: "Pekerjaan Persiapan",
+    unit: "m2",
+    sortOrder: 1,
+    volumeMultiplierPerSquareMeter: 1,
+  },
+  {
+    slug: "galian-tanah",
+    name: "Galian Tanah Pondasi",
+    unit: "m3",
+    sortOrder: 2,
+    volumeMultiplierPerSquareMeter: 0.15,
+  },
+  {
+    slug: "urugan-pasir",
+    name: "Urugan Pasir Bawah Pondasi",
+    unit: "m3",
+    sortOrder: 3,
+    volumeMultiplierPerSquareMeter: 0.05,
+  },
+  {
+    slug: "pondasi-batu-kali",
+    name: "Pasangan Pondasi Batu Kali (1 PC : 4 PP)",
+    unit: "m3",
+    sortOrder: 4,
+    volumeMultiplierPerSquareMeter: 0.15,
+  },
+  {
+    slug: "kolom-beton",
+    name: "Kolom Beton Bertulang (300 kg besi)",
+    unit: "m3",
+    sortOrder: 5,
+    volumeMultiplierPerSquareMeter: 0.018,
+  },
+  {
+    slug: "ring-balok",
+    name: "Ring Balok Beton Bertulang (10 x 15) cm",
+    unit: "m1",
+    sortOrder: 6,
+    volumeMultiplierPerSquareMeter: 1.1,
+  },
+  {
+    slug: "lantai-rabat-beton",
+    name: "Lantai Rabat Beton (t = 10 cm)",
+    unit: "m2",
+    sortOrder: 7,
+    volumeMultiplierPerSquareMeter: 1,
+  },
+  {
+    slug: "atap",
+    name: "Pekerjaan Atap (Rangka + Penutup)",
+    unit: "m2",
+    sortOrder: 8,
+    volumeMultiplierPerSquareMeter: 1.6,
+  },
+];
+
+export type BuildingTypeSeed = {
+  slug: string;
+  name: string;
+  description: string;
+  defaultBuildingArea: number;
+  components: WorkComponentSeed[];
+};
+
+export const BUILDING_TYPES: BuildingTypeSeed[] = [
+  {
+    slug: "rumah-tipe-21",
+    name: "Rumah Tipe 21",
+    description:
+      "Rumah minimalis satu lantai dengan luas bangunan 21 m². Komponen volume mengikuti proporsi standar RAB rumah tipe 36 yang diskalakan ke luas lebih kecil.",
+    defaultBuildingArea: 21,
+    components: HOUSE_COMPONENTS,
+  },
+  {
+    slug: "rumah-tipe-36",
+    name: "Rumah Tipe 36",
+    description:
+      "Rumah tinggal satu lantai dengan luas bangunan 36 m². Komponen volume mengikuti standar RAB rumah tipe 36 (1 lantai, pondasi batu kali, struktur beton bertulang, atap genteng keramik).",
+    defaultBuildingArea: 36,
+    components: HOUSE_COMPONENTS,
+  },
+  {
+    slug: "rumah-tipe-54",
+    name: "Rumah Tipe 54",
+    description:
+      "Rumah tinggal satu lantai dengan luas bangunan 54 m². Komponen volume mengikuti proporsi standar RAB rumah tipe 36 yang diskalakan ke luas lebih besar.",
+    defaultBuildingArea: 54,
+    components: HOUSE_COMPONENTS,
+  },
+  {
+    slug: "garasi",
+    name: "Garasi",
+    description:
+      "Garasi tertutup untuk satu mobil dengan luas standar 3 x 6 m. Dinding sebagian, lantai rabat beton, pintu rolling door, dan atap.",
+    defaultBuildingArea: 18,
+    components: GARASI_COMPONENTS,
+  },
+  {
+    slug: "parkiran",
+    name: "Parkiran / Carport",
+    description:
+      "Carport terbuka untuk dua mobil dengan atap dan kolom struktur, tanpa dinding. Lantai rabat beton dan atap spandek.",
+    defaultBuildingArea: 18,
+    components: PARKIRAN_COMPONENTS,
+  },
+];
+
 export type MaterialSeed = {
   slug: string;
   name: string;
   unit: string;
   category: "struktur" | "dinding" | "atap" | "finishing" | "utilitas";
-  priceInCity: number;
+  priceInReferenceCity: number;
 };
 
 export const MATERIALS: MaterialSeed[] = [
-  { slug: "bata-merah", name: "Bata Merah", unit: "bh", category: "dinding", priceInCity: 750 },
-  { slug: "semen-portland", name: "Semen Portland", unit: "kg", category: "struktur", priceInCity: 1400 },
-  { slug: "pasir-pasang", name: "Pasir Pasang", unit: "m3", category: "struktur", priceInCity: 320000 },
-  { slug: "pasir-beton", name: "Pasir Beton", unit: "m3", category: "struktur", priceInCity: 350000 },
-  { slug: "pasir-urug", name: "Pasir Urug", unit: "m3", category: "struktur", priceInCity: 250000 },
-  { slug: "batu-belah", name: "Batu Belah", unit: "m3", category: "struktur", priceInCity: 180000 },
-  { slug: "kerikil", name: "Kerikil / Split", unit: "m3", category: "struktur", priceInCity: 380000 },
-  { slug: "besi-beton", name: "Besi Beton Polos", unit: "kg", category: "struktur", priceInCity: 16500 },
-  { slug: "kawat-beton", name: "Kawat Beton", unit: "kg", category: "struktur", priceInCity: 25000 },
-  { slug: "kayu-kelas-iii", name: "Kayu Kelas III (Bekisting)", unit: "m3", category: "struktur", priceInCity: 2400000 },
-  { slug: "kayu-kelas-ii", name: "Kayu Kelas II (Kaso / Reng / Balok)", unit: "m3", category: "struktur", priceInCity: 3200000 },
-  { slug: "paku", name: "Paku", unit: "kg", category: "struktur", priceInCity: 18000 },
-  { slug: "minyak-bekisting", name: "Minyak Bekisting", unit: "l", category: "struktur", priceInCity: 25000 },
-  { slug: "genteng-keramik", name: "Genteng Keramik", unit: "bh", category: "atap", priceInCity: 7500 },
-  { slug: "gypsum-board", name: "Gypsum Board 9 mm", unit: "lbr", category: "finishing", priceInCity: 85000 },
-  { slug: "lem-kayu", name: "Lem Kayu", unit: "kg", category: "finishing", priceInCity: 40000 },
-  { slug: "keramik-lantai", name: "Keramik Lantai 30 x 30 cm", unit: "bh", category: "finishing", priceInCity: 12000 },
-  { slug: "cat-tembok", name: "Cat Tembok", unit: "kg", category: "finishing", priceInCity: 42000 },
+  { slug: "bata-merah", name: "Bata Merah", unit: "bh", category: "dinding", priceInReferenceCity: 750 },
+  { slug: "semen-portland", name: "Semen Portland", unit: "kg", category: "struktur", priceInReferenceCity: 1400 },
+  { slug: "pasir-pasang", name: "Pasir Pasang", unit: "m3", category: "struktur", priceInReferenceCity: 320000 },
+  { slug: "pasir-beton", name: "Pasir Beton", unit: "m3", category: "struktur", priceInReferenceCity: 350000 },
+  { slug: "pasir-urug", name: "Pasir Urug", unit: "m3", category: "struktur", priceInReferenceCity: 250000 },
+  { slug: "batu-belah", name: "Batu Belah", unit: "m3", category: "struktur", priceInReferenceCity: 180000 },
+  { slug: "kerikil", name: "Kerikil / Split", unit: "m3", category: "struktur", priceInReferenceCity: 380000 },
+  { slug: "besi-beton", name: "Besi Beton Polos", unit: "kg", category: "struktur", priceInReferenceCity: 16500 },
+  { slug: "kawat-beton", name: "Kawat Beton", unit: "kg", category: "struktur", priceInReferenceCity: 25000 },
+  { slug: "kayu-kelas-iii", name: "Kayu Kelas III (Bekisting)", unit: "m3", category: "struktur", priceInReferenceCity: 2400000 },
+  { slug: "kayu-kelas-ii", name: "Kayu Kelas II (Kaso / Reng / Balok)", unit: "m3", category: "struktur", priceInReferenceCity: 3200000 },
+  { slug: "paku", name: "Paku", unit: "kg", category: "struktur", priceInReferenceCity: 18000 },
+  { slug: "minyak-bekisting", name: "Minyak Bekisting", unit: "l", category: "struktur", priceInReferenceCity: 25000 },
+  { slug: "genteng-keramik", name: "Genteng Keramik", unit: "bh", category: "atap", priceInReferenceCity: 7500 },
+  { slug: "baja-ringan", name: "Rangka Baja Ringan (Profil C)", unit: "kg", category: "atap", priceInReferenceCity: 25000 },
+  { slug: "skrup", name: "Sekrup Baja Ringan", unit: "kg", category: "atap", priceInReferenceCity: 25000 },
+  { slug: "spandek", name: "Spandek Zincalume 0.35 mm", unit: "m2", category: "atap", priceInReferenceCity: 30000 },
+  { slug: "gypsum-board", name: "Gypsum Board 9 mm", unit: "lbr", category: "finishing", priceInReferenceCity: 85000 },
+  { slug: "lem-kayu", name: "Lem Kayu", unit: "kg", category: "finishing", priceInReferenceCity: 40000 },
+  { slug: "keramik-lantai", name: "Keramik Lantai 30 x 30 cm", unit: "bh", category: "finishing", priceInReferenceCity: 12000 },
+  { slug: "cat-tembok", name: "Cat Tembok", unit: "kg", category: "finishing", priceInReferenceCity: 42000 },
+  { slug: "rolling-door", name: "Rolling Door Besi 0.4 mm", unit: "m2", category: "utilitas", priceInReferenceCity: 450000 },
 ];
 
 export type LaborTypeSeed = {
   slug: string;
   name: string;
-  dailyRateInCity: number;
+  dailyRateInReferenceCity: number;
 };
 
 export const LABOR_TYPES: LaborTypeSeed[] = [
-  { slug: "pekerja", name: "Pekerja", dailyRateInCity: 120000 },
-  { slug: "tukang-batu", name: "Tukang Batu", dailyRateInCity: 175000 },
-  { slug: "tukang-kayu", name: "Tukang Kayu", dailyRateInCity: 175000 },
-  { slug: "tukang-besi", name: "Tukang Besi", dailyRateInCity: 175000 },
-  { slug: "tukang-cat", name: "Tukang Cat", dailyRateInCity: 175000 },
-  { slug: "kepala-tukang", name: "Kepala Tukang", dailyRateInCity: 200000 },
-  { slug: "mandor", name: "Mandor", dailyRateInCity: 250000 },
+  { slug: "pekerja", name: "Pekerja", dailyRateInReferenceCity: 120000 },
+  { slug: "tukang-batu", name: "Tukang Batu", dailyRateInReferenceCity: 175000 },
+  { slug: "tukang-kayu", name: "Tukang Kayu", dailyRateInReferenceCity: 175000 },
+  { slug: "tukang-besi", name: "Tukang Besi", dailyRateInReferenceCity: 175000 },
+  { slug: "tukang-cat", name: "Tukang Cat", dailyRateInReferenceCity: 175000 },
+  { slug: "kepala-tukang", name: "Kepala Tukang", dailyRateInReferenceCity: 200000 },
+  { slug: "mandor", name: "Mandor", dailyRateInReferenceCity: 250000 },
 ];
 
 export type MaterialCoefficientRow = {
@@ -220,6 +450,9 @@ export const MATERIAL_COEFFICIENTS: MaterialCoefficientRow[] = [
   { componentSlug: "lantai-keramik", materialSlug: "keramik-lantai", coefficient: 11.67 },
   { componentSlug: "lantai-keramik", materialSlug: "semen-portland", coefficient: 13.6 },
   { componentSlug: "lantai-keramik", materialSlug: "pasir-pasang", coefficient: 0.045 },
+  { componentSlug: "lantai-rabat-beton", materialSlug: "semen-portland", coefficient: 32 },
+  { componentSlug: "lantai-rabat-beton", materialSlug: "pasir-beton", coefficient: 0.05 },
+  { componentSlug: "lantai-rabat-beton", materialSlug: "kerikil", coefficient: 0.083 },
   { componentSlug: "atap", materialSlug: "kayu-kelas-ii", coefficient: 0.05 },
   { componentSlug: "atap", materialSlug: "paku", coefficient: 0.25 },
   { componentSlug: "atap", materialSlug: "genteng-keramik", coefficient: 12.4 },
@@ -231,6 +464,7 @@ export const MATERIAL_COEFFICIENTS: MaterialCoefficientRow[] = [
   { componentSlug: "kusen-pintu", materialSlug: "lem-kayu", coefficient: 1 },
   { componentSlug: "daun-pintu", materialSlug: "kayu-kelas-ii", coefficient: 0.04 },
   { componentSlug: "daun-pintu", materialSlug: "lem-kayu", coefficient: 0.5 },
+  { componentSlug: "pintu-garasi", materialSlug: "rolling-door", coefficient: 1 },
   { componentSlug: "pengecatan", materialSlug: "cat-tembok", coefficient: 0.3 },
 ];
 
@@ -275,6 +509,10 @@ export const LABOR_COEFFICIENTS: LaborCoefficientRow[] = [
   { componentSlug: "lantai-keramik", laborTypeSlug: "tukang-batu", coefficient: 0.071 },
   { componentSlug: "lantai-keramik", laborTypeSlug: "kepala-tukang", coefficient: 0.007 },
   { componentSlug: "lantai-keramik", laborTypeSlug: "mandor", coefficient: 0.002 },
+  { componentSlug: "lantai-rabat-beton", laborTypeSlug: "pekerja", coefficient: 0.25 },
+  { componentSlug: "lantai-rabat-beton", laborTypeSlug: "tukang-batu", coefficient: 0.1 },
+  { componentSlug: "lantai-rabat-beton", laborTypeSlug: "kepala-tukang", coefficient: 0.01 },
+  { componentSlug: "lantai-rabat-beton", laborTypeSlug: "mandor", coefficient: 0.0125 },
   { componentSlug: "atap", laborTypeSlug: "pekerja", coefficient: 0.12 },
   { componentSlug: "atap", laborTypeSlug: "tukang-kayu", coefficient: 0.1 },
   { componentSlug: "atap", laborTypeSlug: "tukang-batu", coefficient: 0.05 },
@@ -292,10 +530,53 @@ export const LABOR_COEFFICIENTS: LaborCoefficientRow[] = [
   { componentSlug: "daun-pintu", laborTypeSlug: "tukang-kayu", coefficient: 3 },
   { componentSlug: "daun-pintu", laborTypeSlug: "kepala-tukang", coefficient: 0.3 },
   { componentSlug: "daun-pintu", laborTypeSlug: "mandor", coefficient: 0.05 },
+  { componentSlug: "pintu-garasi", laborTypeSlug: "pekerja", coefficient: 0.2 },
+  { componentSlug: "pintu-garasi", laborTypeSlug: "tukang-besi", coefficient: 0.3 },
+  { componentSlug: "pintu-garasi", laborTypeSlug: "kepala-tukang", coefficient: 0.02 },
+  { componentSlug: "pintu-garasi", laborTypeSlug: "mandor", coefficient: 0.01 },
   { componentSlug: "pengecatan", laborTypeSlug: "pekerja", coefficient: 0.028 },
   { componentSlug: "pengecatan", laborTypeSlug: "tukang-cat", coefficient: 0.042 },
   { componentSlug: "pengecatan", laborTypeSlug: "kepala-tukang", coefficient: 0.0042 },
   { componentSlug: "pengecatan", laborTypeSlug: "mandor", coefficient: 0.001 },
+];
+
+export type ComponentVariantSeed = {
+  componentSlug: string;
+  slug: string | null;
+  name: string;
+};
+
+export const COMPONENT_VARIANTS: ComponentVariantSeed[] = [
+  { componentSlug: "atap", slug: null, name: "Genteng Keramik + Rangka Kayu Kelas II" },
+  { componentSlug: "atap", slug: "spandek-baja-ringan", name: "Spandek + Rangka Baja Ringan" },
+];
+
+export type VariantMaterialCoefficientRow = {
+  componentSlug: string;
+  variantSlug: string;
+  materialSlug: string;
+  coefficient: number;
+};
+
+export const VARIANT_MATERIAL_COEFFICIENTS: VariantMaterialCoefficientRow[] = [
+  {
+    componentSlug: "atap",
+    variantSlug: "spandek-baja-ringan",
+    materialSlug: "baja-ringan",
+    coefficient: 3.5,
+  },
+  {
+    componentSlug: "atap",
+    variantSlug: "spandek-baja-ringan",
+    materialSlug: "skrup",
+    coefficient: 0.1,
+  },
+  {
+    componentSlug: "atap",
+    variantSlug: "spandek-baja-ringan",
+    materialSlug: "spandek",
+    coefficient: 1.2,
+  },
 ];
 
 export type BoronganRateSeed = {

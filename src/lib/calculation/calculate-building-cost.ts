@@ -1,23 +1,4 @@
-import {
-  BUILDING_TYPE_RUMAH_TIPE_36,
-  WORK_COMPONENTS,
-} from "@/db/seed-data";
 import type { ComponentCostEstimate, BuildingCostEstimate, BuildingCostInput } from "./types";
-
-const volumeMultiplierBySlug = new Map(
-  WORK_COMPONENTS.map((component) => [
-    component.slug,
-    component.volumeMultiplierPerSquareMeter,
-  ]),
-);
-
-export function calculateComponentVolume(componentSlug: string, buildingArea: number): number {
-  const volumeMultiplier = volumeMultiplierBySlug.get(componentSlug);
-  if (volumeMultiplier === undefined) {
-    throw new Error(`Tidak ada rumus volume untuk komponen "${componentSlug}".`);
-  }
-  return volumeMultiplier * buildingArea;
-}
 
 function roundToRupiah(value: number): number {
   return Math.round(value);
@@ -56,9 +37,11 @@ export function calculateBuildingCost(input: BuildingCostInput): BuildingCostEst
   const laborTypeBySlug = new Map(input.laborTypes.map((laborType) => [laborType.slug, laborType]));
 
   const components = input.components.map<ComponentCostEstimate>((component) => {
+    const volume = component.volumeMultiplierPerSquareMeter * input.buildingArea;
+
     const materialBreakdown = component.materialCoefficients.map((coefficient) => {
       const material = materialBySlug.get(coefficient.materialSlug)!;
-      const cost = roundToRupiah(coefficient.coefficient * material.price * component.volume);
+      const cost = roundToRupiah(coefficient.coefficient * material.price * volume);
       return {
         materialName: material.name,
         unit: material.unit,
@@ -70,7 +53,7 @@ export function calculateBuildingCost(input: BuildingCostInput): BuildingCostEst
 
     const laborBreakdown = component.laborCoefficients.map((coefficient) => {
       const laborType = laborTypeBySlug.get(coefficient.laborTypeSlug)!;
-      const cost = roundToRupiah(coefficient.coefficient * laborType.dailyRate * component.volume);
+      const cost = roundToRupiah(coefficient.coefficient * laborType.dailyRate * volume);
       return {
         laborTypeName: laborType.name,
         dailyRate: laborType.dailyRate,
@@ -86,7 +69,8 @@ export function calculateBuildingCost(input: BuildingCostInput): BuildingCostEst
       componentSlug: component.slug,
       componentName: component.name,
       unit: component.unit,
-      volume: component.volume,
+      volume,
+      variantName: component.variantName,
       materialCost,
       laborCost,
       totalCost: materialCost + laborCost,
@@ -114,5 +98,3 @@ export function calculateBuildingCost(input: BuildingCostInput): BuildingCostEst
     costPerSquareMeter: roundToRupiah(totalCost / input.buildingArea),
   };
 }
-
-export { BUILDING_TYPE_RUMAH_TIPE_36 };

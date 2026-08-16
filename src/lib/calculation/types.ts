@@ -1,3 +1,5 @@
+export const VARIANT_FIELD_PREFIX = "variant_";
+
 export type MaterialInput = {
   slug: string;
   name: string;
@@ -25,7 +27,8 @@ export type ComponentInput = {
   slug: string;
   name: string;
   unit: string;
-  volume: number;
+  volumeMultiplierPerSquareMeter: number;
+  variantName: string | null;
   materialCoefficients: MaterialCoefficientInput[];
   laborCoefficients: LaborCoefficientInput[];
 };
@@ -59,6 +62,7 @@ export type ComponentCostEstimate = {
   componentName: string;
   unit: string;
   volume: number;
+  variantName: string | null;
   materialCost: number;
   laborCost: number;
   totalCost: number;

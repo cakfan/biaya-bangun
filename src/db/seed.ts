@@ -3,6 +3,7 @@ import {
   ahspCoefficients,
   boronganRates,
   buildingTypes,
+  componentVariants,
   laborRates,
   laborTypes,
   materialPrices,
@@ -11,22 +12,29 @@ import {
 } from "./schema";
 import {
   BORONGAN_RATES,
-  BUILDING_TYPE_RUMAH_TIPE_36,
-  CITY_SURABAYA,
+  BUILDING_TYPES,
+  CITIES,
+  COMPONENT_VARIANTS,
   LABOR_COEFFICIENTS,
   LABOR_TYPES,
   MATERIAL_COEFFICIENTS,
   MATERIALS,
   PRICE_SOURCE_MANUAL,
-  WORK_COMPONENTS,
+  VARIANT_MATERIAL_COEFFICIENTS,
 } from "./seed-data";
 
 const recordedAt = new Date();
+
+function roundPriceForCity(value: number): number {
+  const step = value < 100_000 ? 100 : value < 1_000_000 ? 1_000 : 5_000;
+  return Math.round(value / step) * step;
+}
 
 function clearExistingData(): void {
   const sqlite = db.$client;
   const tableNames = [
     "ahsp_coefficients",
+    "component_variants",
     "borongan_rates",
     "material_prices",
     "labor_rates",
@@ -44,33 +52,61 @@ function clearExistingData(): void {
 
 clearExistingData();
 
-const buildingType = BUILDING_TYPE_RUMAH_TIPE_36;
-
-const buildingTypeId = db
-  .insert(buildingTypes)
-  .values({
-    slug: buildingType.slug,
-    name: buildingType.name,
-    description: buildingType.description,
-    defaultBuildingArea: buildingType.defaultBuildingArea,
-  })
-  .returning({ id: buildingTypes.id })
-  .get().id;
-
-const componentIdBySlug = new Map<string, number>();
-for (const component of WORK_COMPONENTS) {
+const buildingTypeIdBySlug = new Map<string, number>();
+for (const buildingType of BUILDING_TYPES) {
   const inserted = db
-    .insert(workComponents)
+    .insert(buildingTypes)
     .values({
-      buildingTypeId,
-      slug: component.slug,
-      name: component.name,
-      unit: component.unit,
-      sortOrder: component.sortOrder,
+      slug: buildingType.slug,
+      name: buildingType.name,
+      description: buildingType.description,
+      defaultBuildingArea: buildingType.defaultBuildingArea,
     })
-    .returning({ id: workComponents.id })
+    .returning({ id: buildingTypes.id })
     .get();
-  componentIdBySlug.set(component.slug, inserted.id);
+  buildingTypeIdBySlug.set(buildingType.slug, inserted.id);
+}
+
+const componentIdByKey = new Map<string, number>();
+const variantIdByKey = new Map<string, number>();
+
+for (const buildingType of BUILDING_TYPES) {
+  const buildingTypeId = buildingTypeIdBySlug.get(buildingType.slug)!;
+
+  for (const component of buildingType.components) {
+    const inserted = db
+      .insert(workComponents)
+      .values({
+        buildingTypeId,
+        slug: component.slug,
+        name: component.name,
+        unit: component.unit,
+        volumeMultiplierPerSquareMeter: component.volumeMultiplierPerSquareMeter,
+        sortOrder: component.sortOrder,
+      })
+      .returning({ id: workComponents.id })
+      .get();
+
+    const componentKey = `${buildingType.slug}/${component.slug}`;
+    componentIdByKey.set(componentKey, inserted.id);
+
+    for (const variant of COMPONENT_VARIANTS) {
+      if (variant.componentSlug !== component.slug || variant.slug === null) {
+        continue;
+      }
+      const variantInserted = db
+        .insert(componentVariants)
+        .values({
+          workComponentId: inserted.id,
+          slug: variant.slug,
+          name: variant.name,
+          sortOrder: 1,
+        })
+        .returning({ id: componentVariants.id })
+        .get();
+      variantIdByKey.set(`${buildingType.slug}/${component.slug}/${variant.slug}`, variantInserted.id);
+    }
+  }
 }
 
 const materialIdBySlug = new Map<string, number>();
@@ -82,15 +118,17 @@ for (const material of MATERIALS) {
     .get();
   materialIdBySlug.set(material.slug, inserted.id);
 
-  db.insert(materialPrices)
-    .values({
-      materialId: inserted.id,
-      price: material.priceInCity,
-      source: PRICE_SOURCE_MANUAL,
-      city: CITY_SURABAYA,
-      recordedAt,
-    })
-    .run();
+  for (const city of CITIES) {
+    db.insert(materialPrices)
+      .values({
+        materialId: inserted.id,
+        price: roundPriceForCity(material.priceInReferenceCity * city.materialIndex),
+        source: PRICE_SOURCE_MANUAL,
+        city: city.name,
+        recordedAt,
+      })
+      .run();
+  }
 }
 
 const laborTypeIdBySlug = new Map<string, number>();
@@ -102,46 +140,87 @@ for (const laborType of LABOR_TYPES) {
     .get();
   laborTypeIdBySlug.set(laborType.slug, inserted.id);
 
-  db.insert(laborRates)
-    .values({
-      laborTypeId: inserted.id,
-      dailyRate: laborType.dailyRateInCity,
-      city: CITY_SURABAYA,
-      recordedAt,
-    })
-    .run();
+  for (const city of CITIES) {
+    db.insert(laborRates)
+      .values({
+        laborTypeId: inserted.id,
+        dailyRate: roundPriceForCity(laborType.dailyRateInReferenceCity * city.laborIndex),
+        city: city.name,
+        recordedAt,
+      })
+      .run();
+  }
 }
 
-for (const coefficient of MATERIAL_COEFFICIENTS) {
-  db.insert(ahspCoefficients)
-    .values({
-      workComponentId: componentIdBySlug.get(coefficient.componentSlug)!,
-      materialId: materialIdBySlug.get(coefficient.materialSlug)!,
-      materialCoefficient: coefficient.coefficient,
-    })
-    .run();
+for (const buildingType of BUILDING_TYPES) {
+  const componentSlugs = new Set(buildingType.components.map((component) => component.slug));
+
+  for (const coefficient of MATERIAL_COEFFICIENTS) {
+    if (!componentSlugs.has(coefficient.componentSlug)) {
+      continue;
+    }
+    db.insert(ahspCoefficients)
+      .values({
+        workComponentId: componentIdByKey.get(`${buildingType.slug}/${coefficient.componentSlug}`)!,
+        materialId: materialIdBySlug.get(coefficient.materialSlug)!,
+        materialCoefficient: coefficient.coefficient,
+      })
+      .run();
+  }
+
+  for (const coefficient of LABOR_COEFFICIENTS) {
+    if (!componentSlugs.has(coefficient.componentSlug)) {
+      continue;
+    }
+    db.insert(ahspCoefficients)
+      .values({
+        workComponentId: componentIdByKey.get(`${buildingType.slug}/${coefficient.componentSlug}`)!,
+        laborTypeId: laborTypeIdBySlug.get(coefficient.laborTypeSlug)!,
+        laborCoefficient: coefficient.coefficient,
+      })
+      .run();
+  }
+
+  for (const coefficient of VARIANT_MATERIAL_COEFFICIENTS) {
+    if (!componentSlugs.has(coefficient.componentSlug)) {
+      continue;
+    }
+    db.insert(ahspCoefficients)
+      .values({
+        workComponentId: componentIdByKey.get(`${buildingType.slug}/${coefficient.componentSlug}`)!,
+        variantId: variantIdByKey.get(
+          `${buildingType.slug}/${coefficient.componentSlug}/${coefficient.variantSlug}`,
+        )!,
+        materialId: materialIdBySlug.get(coefficient.materialSlug)!,
+        materialCoefficient: coefficient.coefficient,
+      })
+      .run();
+  }
 }
 
-for (const coefficient of LABOR_COEFFICIENTS) {
-  db.insert(ahspCoefficients)
-    .values({
-      workComponentId: componentIdBySlug.get(coefficient.componentSlug)!,
-      laborTypeId: laborTypeIdBySlug.get(coefficient.laborTypeSlug)!,
-      laborCoefficient: coefficient.coefficient,
-    })
-    .run();
-}
-
+const componentSlugs = new Set(BUILDING_TYPES.flatMap((buildingType) =>
+  buildingType.components.map((component) => component.slug),
+));
 for (const rate of BORONGAN_RATES) {
-  db.insert(boronganRates)
-    .values({
-      workComponentId: componentIdBySlug.get(rate.componentSlug)!,
-      pricePerUnit: rate.pricePerUnit,
-      city: CITY_SURABAYA,
-      sourceName: rate.sourceName,
-      recordedAt,
-    })
-    .run();
+  if (!componentSlugs.has(rate.componentSlug)) {
+    continue;
+  }
+  for (const buildingType of BUILDING_TYPES) {
+    if (!buildingType.components.some((component) => component.slug === rate.componentSlug)) {
+      continue;
+    }
+    for (const city of CITIES) {
+      db.insert(boronganRates)
+        .values({
+          workComponentId: componentIdByKey.get(`${buildingType.slug}/${rate.componentSlug}`)!,
+          pricePerUnit: roundPriceForCity(rate.pricePerUnit * city.materialIndex),
+          city: city.name,
+          sourceName: rate.sourceName,
+          recordedAt,
+        })
+        .run();
+    }
+  }
 }
 
 const materialCount = db.select().from(materials).all().length;
@@ -150,5 +229,5 @@ const coefficientCount = db.select().from(ahspCoefficients).all().length;
 const componentCount = db.select().from(workComponents).all().length;
 
 console.log(
-  `Seed selesai: ${componentCount} komponen, ${materialCount} material, ${laborCount} jenis upah, ${coefficientCount} koefisien AHSP, ${BORONGAN_RATES.length} tarif borongan (kota: ${CITY_SURABAYA}).`,
+  `Seed selesai: ${BUILDING_TYPES.length} tipe bangunan, ${componentCount} komponen, ${materialCount} material, ${laborCount} jenis upah, ${coefficientCount} koefisien AHSP (kota: ${CITIES.map((city) => city.name).join(", ")}).`,
 );

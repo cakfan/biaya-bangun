@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const buildingTypes = sqliteTable("building_types", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -16,5 +16,6 @@ export const workComponents = sqliteTable("work_components", {
   slug: text("slug").notNull(),
   name: text("name").notNull(),
   unit: text("unit").notNull(),
+  volumeMultiplierPerSquareMeter: real("volume_multiplier_per_square_meter").notNull(),
   sortOrder: integer("sort_order").notNull(),
 });

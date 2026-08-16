@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { calculateBuildingCost, calculateComponentVolume } from "./calculate-building-cost";
+import { calculateBuildingCost } from "./calculate-building-cost";
 import type { BuildingCostInput } from "./types";
 
 const sampleInput: BuildingCostInput = {
@@ -11,7 +11,8 @@ const sampleInput: BuildingCostInput = {
       slug: "contoh-komponen",
       name: "Contoh Komponen",
       unit: "m2",
-      volume: 2,
+      volumeMultiplierPerSquareMeter: 0.02,
+      variantName: null,
       materialCoefficients: [{ materialSlug: "contoh-material", coefficient: 3 }],
       laborCoefficients: [{ laborTypeSlug: "contoh-upah", coefficient: 0.5 }],
     },
@@ -20,24 +21,24 @@ const sampleInput: BuildingCostInput = {
   laborTypes: [{ slug: "contoh-upah", name: "Contoh Upah", dailyRate: 200000 }],
 };
 
-describe("calculateComponentVolume", () => {
-  test("menghitung volume berdasarkan luas bangunan", () => {
-    expect(calculateComponentVolume("dinding-bata", 36)).toBe(126);
-    expect(calculateComponentVolume("pekerjaan-persiapan", 36)).toBe(36);
-  });
-
-  test("melempar error untuk slug komponen yang tidak dikenal", () => {
-    expect(() => calculateComponentVolume("komponen-asing", 36)).toThrow(
-      'Tidak ada rumus volume untuk komponen "komponen-asing"',
-    );
-  });
-});
-
 describe("calculateBuildingCost", () => {
+  test("menghitung volume dari multiplier per m2 dan luas bangunan", () => {
+    const estimate = calculateBuildingCost({
+      ...sampleInput,
+      buildingArea: 36,
+      components: [
+        { ...sampleInput.components[0], volumeMultiplierPerSquareMeter: 3.5 },
+      ],
+    });
+
+    expect(estimate.components[0].volume).toBe(126);
+  });
+
   test("menghitung biaya bahan dan upah terpisah", () => {
     const estimate = calculateBuildingCost(sampleInput);
 
     const component = estimate.components[0];
+    expect(component.volume).toBe(2);
     expect(component.materialBreakdown[0].cost).toBe(6000);
     expect(component.laborBreakdown[0].cost).toBe(200000);
     expect(component.materialCost).toBe(6000);
@@ -67,6 +68,15 @@ describe("calculateBuildingCost", () => {
     expect(estimate.components).toHaveLength(1);
     expect(estimate.overheadProfitCost).toBe(0);
     expect(estimate.totalCost).toBe(estimate.subtotalCost);
+  });
+
+  test("membawa nama varian material yang dipilih ke hasil estimasi", () => {
+    const estimate = calculateBuildingCost({
+      ...sampleInput,
+      components: [{ ...sampleInput.components[0], variantName: "Spandek + Rangka Baja Ringan" }],
+    });
+
+    expect(estimate.components[0].variantName).toBe("Spandek + Rangka Baja Ringan");
   });
 
   test("melempar error jika luas bangunan tidak valid", () => {
