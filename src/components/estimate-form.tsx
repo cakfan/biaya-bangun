@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EstimateResult } from "@/components/estimate-result";
+import { EditableEstimateResult } from "@/components/editable-estimate-result";
 
 const DEFAULT_BUILDING_TYPE_SLUG = "rumah-tipe-36";
 const DEFAULT_CITY = "Surabaya";
@@ -207,7 +207,7 @@ export function EstimateForm({ options }: { options: FormOptions }) {
 
       <div ref={resultSectionRef} className="scroll-mt-6">
         {state.estimate !== null && (
-          <EstimateResult
+          <EditableEstimateResult
             estimate={state.estimate}
             summary={{ buildingTypeName: selectedBuildingType.name, city }}
           />

@@ -134,7 +134,7 @@ export function EstimateResult({
   );
 }
 
-function CostSplit({ estimate }: { estimate: BuildingCostEstimate }) {
+export function CostSplit({ estimate }: { estimate: BuildingCostEstimate }) {
   const total = estimate.totalCost;
   const segments = [
     { label: "Bahan", value: estimate.totalMaterialCost, className: "bg-foreground" },
