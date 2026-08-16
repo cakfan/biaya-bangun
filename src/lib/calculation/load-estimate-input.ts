@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   ahspCoefficients,
@@ -14,7 +14,6 @@ import {
   CITY_SURABAYA,
   COMPONENT_VARIANTS,
   DEFAULT_OVERHEAD_PROFIT_RATE,
-  PRICE_SOURCE_MANUAL,
 } from "@/db/seed-data";
 import type { BuildingCostInput } from "./types";
 
@@ -83,9 +82,8 @@ export function loadEstimateInput(
     })
     .from(materialPrices)
     .innerJoin(materials, eq(materialPrices.materialId, materials.id))
-    .where(
-      and(eq(materialPrices.city, city), eq(materialPrices.source, PRICE_SOURCE_MANUAL)),
-    )
+    .where(eq(materialPrices.city, city))
+    .orderBy(desc(materialPrices.recordedAt), desc(materialPrices.id))
     .all();
 
   const materialById = new Map<number, (typeof materialPriceRows)[number]>();

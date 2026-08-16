@@ -22,13 +22,9 @@ import {
   PRICE_SOURCE_MANUAL,
   VARIANT_MATERIAL_COEFFICIENTS,
 } from "./seed-data";
+import { roundPriceForCity } from "@/lib/pricing/price-rounding";
 
 const recordedAt = new Date();
-
-function roundPriceForCity(value: number): number {
-  const step = value < 100_000 ? 100 : value < 1_000_000 ? 1_000 : 5_000;
-  return Math.round(value / step) * step;
-}
 
 function clearExistingData(): void {
   const sqlite = db.$client;

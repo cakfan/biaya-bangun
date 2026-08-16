@@ -16,6 +16,8 @@ export const CITIES: CitySeed[] = [
 
 export const CITY_SURABAYA = CITIES[0].name;
 export const PRICE_SOURCE_MANUAL = "manual";
+export const PRICE_SOURCE_SCRAPING = "scraping";
+export const MITRA10_SOURCE_NAME = "Mitra10";
 
 export const DEFAULT_OVERHEAD_PROFIT_RATE = 0.1;
 
@@ -610,5 +612,30 @@ export const BORONGAN_RATES: BoronganRateSeed[] = [
     componentSlug: "plafon",
     pricePerUnit: 40000,
     sourceName: "Sinar Mas Land / detikProperti 2025 (upah borongan pasang plafon gypsum)",
+  },
+  {
+    componentSlug: "galian-tanah",
+    pricePerUnit: 100000,
+    sourceName: "finoo.id 2025 (upah borongan galian tanah pondasi 80–100 rb/m³)",
+  },
+  {
+    componentSlug: "urugan-pasir",
+    pricePerUnit: 75000,
+    sourceName: "sn-studio.id 2025 (upah borongan urugan pasir)",
+  },
+  {
+    componentSlug: "pondasi-batu-kali",
+    pricePerUnit: 250000,
+    sourceName: "RealEstat.id 2026 (upah borongan tenaga pasang pondasi batu kali 250–350 rb/m³)",
+  },
+  {
+    componentSlug: "sloof-beton",
+    pricePerUnit: 350000,
+    sourceName: "RealEstat.id 2026 (upah borongan tenaga beton bertulang per m³)",
+  },
+  {
+    componentSlug: "lantai-rabat-beton",
+    pricePerUnit: 35000,
+    sourceName: "sn-studio.id 2025 (upah borongan lantai beton/rabat)",
   },
 ];

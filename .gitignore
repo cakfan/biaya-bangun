@@ -18,7 +18,8 @@
 /out/
 
 # database (sqlite runtime files)
-/data/
+/data/*
+!/data/price-snapshots/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
