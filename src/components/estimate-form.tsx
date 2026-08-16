@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { AlertCircle, Calculator, LoaderCircle } from "lucide-react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Calculator, LoaderCircle, Square, SquareCheck } from "lucide-react";
 import { calculateEstimateAction } from "@/app/actions/estimate";
 import type { EstimateFormState } from "@/app/actions/estimate";
 import type { FormOptions } from "@/lib/calculation/load-form-options";
@@ -41,6 +41,14 @@ export function EstimateForm({ options }: { options: FormOptions }) {
   const [city, setCity] = useState(DEFAULT_CITY);
   const [wasteFactor, setWasteFactor] = useState("10");
   const [variantByComponentSlug, setVariantByComponentSlug] = useState<Record<string, string>>({});
+  const [selectedComponentSlugs, setSelectedComponentSlugs] = useState<Set<string>>(
+    () =>
+      new Set(
+        (options.buildingTypes.find((buildingType) => buildingType.slug === DEFAULT_BUILDING_TYPE_SLUG) ??
+          options.buildingTypes[0]
+        ).components.map((component) => component.slug),
+      ),
+  );
 
   const resultSectionRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +66,13 @@ export function EstimateForm({ options }: { options: FormOptions }) {
     options.buildingTypes.find((buildingType) => buildingType.slug === selectedBuildingTypeSlug) ??
     options.buildingTypes[0];
 
+  const allComponentSlugs = useMemo(
+    () => selectedBuildingType.components.map((c) => c.slug),
+    [selectedBuildingType],
+  );
+
+  const allSelected = allComponentSlugs.length > 0 && allComponentSlugs.every((slug) => selectedComponentSlugs.has(slug));
+
   function handleBuildingTypeChange(slug: string | null): void {
     const buildingType = options.buildingTypes.find((option) => option.slug === slug);
     if (buildingType === undefined) {
@@ -66,6 +81,27 @@ export function EstimateForm({ options }: { options: FormOptions }) {
     setSelectedBuildingTypeSlug(buildingType.slug);
     setBuildingArea(String(buildingType.defaultBuildingArea));
     setVariantByComponentSlug({});
+    setSelectedComponentSlugs(new Set(buildingType.components.map((c) => c.slug)));
+  }
+
+  function handleToggleAllComponents(): void {
+    if (allSelected) {
+      setSelectedComponentSlugs(new Set());
+    } else {
+      setSelectedComponentSlugs(new Set(allComponentSlugs));
+    }
+  }
+
+  function handleToggleComponent(slug: string): void {
+    setSelectedComponentSlugs((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) {
+        next.delete(slug);
+      } else {
+        next.add(slug);
+      }
+      return next;
+    });
   }
 
   function handleVariantChange(componentSlug: string, variantSlug: string | null): void {
@@ -80,6 +116,7 @@ export function EstimateForm({ options }: { options: FormOptions }) {
       <form action={formAction} className="flex flex-col gap-5 no-print">
         <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-4">
+            <StepBadge number={1} />
             <CardTitle className="text-lg">Parameter Bangunan</CardTitle>
             <CardDescription className="text-sm">
               Volume tiap pekerjaan dihitung otomatis dari luas bangunan yang Anda masukkan.
@@ -170,41 +207,74 @@ export function EstimateForm({ options }: { options: FormOptions }) {
                 />
               </FormField>
             </div>
+          </CardContent>
+        </Card>
 
-            {state.error !== null && (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
-              >
-                <AlertCircle className="mt-0.5 size-4 shrink-0" />
-                <span>{state.error}</span>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Gratis, tanpa akun — hasil langsung tampil di bawah.
-              </p>
-              <Button
-                type="submit"
-                size="lg"
-                disabled={isPending}
-                className="sm:min-w-48 cursor-pointer"
-              >
-                {isPending ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <Calculator data-icon="inline-start" />
-                )}
-                {isPending ? "Menghitung…" : "Hitung Estimasi"}
-              </Button>
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4 pb-4">
+            <div className="flex flex-col gap-1.5">
+              <StepBadge number={2} />
+              <CardTitle className="text-lg">Pilih Pekerjaan</CardTitle>
+              <CardDescription className="text-sm">
+                Centang pekerjaan yang ingin dihitung.
+              </CardDescription>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleAllComponents}
+              className="gap-1.5 text-xs cursor-pointer shrink-0"
+            >
+              {allSelected ? (
+                <SquareCheck className="size-3.5" />
+              ) : (
+                <Square className="size-3.5" />
+              )}
+              {allSelected ? "Batal Semua" : "Pilih Semua"}
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+              {selectedBuildingType.components.map((component) => {
+                const isChecked = selectedComponentSlugs.has(component.slug);
+                return (
+                  <label
+                    key={component.slug}
+                    className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors cursor-pointer ${
+                      isChecked ? "hover:bg-muted/50" : "opacity-50 hover:bg-muted/30"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => handleToggleComponent(component.slug)}
+                      className="size-3.5 shrink-0 accent-primary"
+                    />
+                    <span className="text-sm min-w-0 flex-1">{component.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">{component.unit}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {selectedComponentSlugs.size === 0 && (
+              <p className="mt-3 text-xs text-destructive">
+                Pilih minimal satu pekerjaan untuk menghitung estimasi.
+              </p>
+            )}
+            {selectedComponentSlugs.size > 0 && (
+              <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">
+                {selectedComponentSlugs.size} dari {allComponentSlugs.length} pekerjaan dipilih —
+                total biaya dihitung dari pekerjaan yang dicentang.
+              </p>
+            )}
           </CardContent>
         </Card>
 
         {selectedBuildingType.variants.length > 0 && (
           <Card className="border-border/60 shadow-sm">
             <CardHeader className="pb-4">
+              <StepBadge number={3} />
               <CardTitle className="text-lg">Spesifikasi Material</CardTitle>
               <CardDescription className="text-sm">
                 Opsional — biarkan bawaan untuk memakai spesifikasi standar.
@@ -224,6 +294,45 @@ export function EstimateForm({ options }: { options: FormOptions }) {
             </CardContent>
           </Card>
         )}
+
+        {allComponentSlugs.map((slug) => (
+          <input
+            key={slug}
+            type="hidden"
+            name="selectedComponentSlugs"
+            value={selectedComponentSlugs.has(slug) ? slug : ""}
+          />
+        ))}
+
+        <div className="mt-2 flex flex-col gap-3 border-t border-border/60 pt-5">
+          {state.error !== null && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            >
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>{state.error}</span>
+            </div>
+          )}
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              Gratis, tanpa akun — hasil langsung tampil di bawah.
+            </p>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={isPending || selectedComponentSlugs.size === 0}
+              className="sm:min-w-48 cursor-pointer"
+            >
+              {isPending ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <Calculator data-icon="inline-start" />
+              )}
+              {isPending ? "Menghitung…" : "Hitung Estimasi"}
+            </Button>
+          </div>
+        </div>
       </form>
 
       <div ref={resultSectionRef} className="scroll-mt-6">
@@ -236,6 +345,17 @@ export function EstimateForm({ options }: { options: FormOptions }) {
         )}
       </div>
     </div>
+  );
+}
+
+function StepBadge({ number }: { number: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+    >
+      {number}
+    </span>
   );
 }
 

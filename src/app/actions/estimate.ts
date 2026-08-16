@@ -51,7 +51,18 @@ export async function calculateEstimateAction(
       ? wasteFactorRaw
       : DEFAULT_WASTE_FACTOR;
 
-    const input = loadEstimateInput(buildingTypeSlug, buildingArea, city, readSelectedVariants(formData));
+    const selectedComponentSlugs = formData
+      .getAll("selectedComponentSlugs")
+      .map(String)
+      .filter((slug) => slug.trim() !== "");
+
+    const input = loadEstimateInput(
+      buildingTypeSlug,
+      buildingArea,
+      city,
+      readSelectedVariants(formData),
+      selectedComponentSlugs,
+    );
     input.wasteFactor = wasteFactor;
 
     const estimate = calculateBuildingCost(input);

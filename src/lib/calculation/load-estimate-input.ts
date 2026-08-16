@@ -32,6 +32,7 @@ export function loadEstimateInput(
   buildingArea: number,
   city: string = CITY_SURABAYA,
   selectedVariants: SelectedVariants = {},
+  selectedComponentSlugs: string[] = [],
 ): BuildingCostInput {
   const buildingType = db
     .select()
@@ -54,16 +55,25 @@ export function loadEstimateInput(
     throw new Error(`Tipe bangunan "${buildingTypeSlug}" belum memiliki komponen pekerjaan.`);
   }
 
+  const selectedComponentRows =
+    selectedComponentSlugs.length > 0
+      ? componentRows.filter((component) => selectedComponentSlugs.includes(component.slug))
+      : componentRows;
+
+  if (selectedComponentRows.length === 0) {
+    throw new Error("Pilih minimal satu pekerjaan untuk menghitung estimasi.");
+  }
+
   const coefficientRows = db
     .select()
     .from(ahspCoefficients)
-    .where(inArray(ahspCoefficients.workComponentId, componentRows.map((component) => component.id)))
+    .where(inArray(ahspCoefficients.workComponentId, selectedComponentRows.map((component) => component.id)))
     .all();
 
   const variantRows = db
     .select()
     .from(componentVariants)
-    .where(inArray(componentVariants.workComponentId, componentRows.map((component) => component.id)))
+    .where(inArray(componentVariants.workComponentId, selectedComponentRows.map((component) => component.id)))
     .all();
 
   const variantsByComponentId = new Map<number, (typeof variantRows)[number][]>();
@@ -113,7 +123,7 @@ export function loadEstimateInput(
     }
   }
 
-  const components = componentRows.map((component) => {
+  const components = selectedComponentRows.map((component) => {
     const componentCoefficients = coefficientRows.filter(
       (coefficient) => coefficient.workComponentId === component.id,
     );

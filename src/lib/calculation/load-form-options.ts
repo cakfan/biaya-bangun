@@ -8,11 +8,18 @@ export type MaterialVariantOption = {
   options: { slug: string | null; name: string }[];
 };
 
+export type ComponentOption = {
+  slug: string;
+  name: string;
+  unit: string;
+};
+
 export type BuildingTypeOption = {
   slug: string;
   name: string;
   defaultBuildingArea: number;
   componentCount: number;
+  components: ComponentOption[];
   variants: MaterialVariantOption[];
 };
 
@@ -72,11 +79,18 @@ export function loadFormOptions(): FormOptions {
         ];
       });
 
+      const componentOptions: ComponentOption[] = buildingTypeComponents.map((component) => ({
+        slug: component.slug,
+        name: component.name,
+        unit: component.unit,
+      }));
+
       return {
         slug: buildingType.slug,
         name: buildingType.name,
         defaultBuildingArea: buildingType.defaultBuildingArea,
         componentCount: componentCountByType.get(buildingType.id) ?? 0,
+        components: componentOptions,
         variants,
       };
     }),

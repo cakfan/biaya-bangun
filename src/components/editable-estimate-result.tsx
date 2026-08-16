@@ -143,18 +143,19 @@ export function EditableEstimateResult({
       </div>
 
       <Card className="border-border/60 shadow-sm overflow-hidden">
-        <CardContent className="grid gap-6 pt-6 lg:grid-cols-[minmax(14rem,auto)_1fr] lg:items-center">
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Estimasi</p>
-            <p className="font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+        <CardContent className="grid gap-0 lg:grid-cols-[minmax(15rem,auto)_1fr]">
+          <div className="flex flex-col gap-1 border-b border-border/60 p-6 lg:border-b-0 lg:border-r lg:bg-gradient-to-br lg:from-primary/[0.06] lg:to-transparent lg:rounded-l-lg">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Estimasi</p>
+            <p className="font-mono text-3xl font-bold tracking-tight text-primary tabular-nums sm:text-4xl">
               {formatRupiah(displayEstimate.totalCost)}
             </p>
             <p className="text-sm text-muted-foreground">
               ≈ {formatRupiah(displayEstimate.costPerSquareMeter)} / m²
             </p>
           </div>
-
-          <CostSplit estimate={displayEstimate} />
+          <div className="p-6">
+            <CostSplit estimate={displayEstimate} />
+          </div>
         </CardContent>
       </Card>
 
