@@ -24,6 +24,7 @@ const DEFAULT_CITY = "Surabaya";
 
 const INITIAL_FORM_STATE: EstimateFormState = {
   estimate: null,
+  boronganRates: {},
   error: null,
 };
 
@@ -38,6 +39,7 @@ export function EstimateForm({ options }: { options: FormOptions }) {
   );
   const [buildingArea, setBuildingArea] = useState("36");
   const [city, setCity] = useState(DEFAULT_CITY);
+  const [wasteFactor, setWasteFactor] = useState("10");
   const [variantByComponentSlug, setVariantByComponentSlug] = useState<Record<string, string>>({});
 
   const resultSectionRef = useRef<HTMLDivElement>(null);
@@ -75,20 +77,20 @@ export function EstimateForm({ options }: { options: FormOptions }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <form action={formAction} className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Parameter Bangunan</CardTitle>
-            <CardDescription>
-              Volume tiap pekerjaan dihitung otomatis dari luas bangunan yang kamu masukkan.
+      <form action={formAction} className="flex flex-col gap-5 no-print">
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Parameter Bangunan</CardTitle>
+            <CardDescription className="text-sm">
+              Volume tiap pekerjaan dihitung otomatis dari luas bangunan yang Anda masukkan.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
-            <div className="grid gap-4 sm:grid-cols-3 sm:items-start">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:items-start">
               <FormField
                 label="Tipe bangunan"
                 htmlFor="buildingType"
-                helper={`${selectedBuildingType.componentCount} item pekerjaan · luas default ${selectedBuildingType.defaultBuildingArea} m²`}
+                helper={`${selectedBuildingType.componentCount} item pekerjaan · default ${selectedBuildingType.defaultBuildingArea} m²`}
               >
                 <Select
                   name="buildingTypeSlug"
@@ -125,7 +127,7 @@ export function EstimateForm({ options }: { options: FormOptions }) {
               <FormField
                 label="Kota"
                 htmlFor="city"
-                helper="Harga bahan dan upah mengikuti kota ini."
+                helper="Menentukan harga satuan bahan & upah."
               >
                 <Select
                   name="city"
@@ -148,24 +150,46 @@ export function EstimateForm({ options }: { options: FormOptions }) {
                   </SelectContent>
                 </Select>
               </FormField>
+
+              <FormField
+                label="Faktor pemborosan (%)"
+                htmlFor="wasteFactor"
+                helper="Tambahan untuk potongan, sisa, kerusakan."
+              >
+                <Input
+                  id="wasteFactor"
+                  name="wasteFactor"
+                  type="number"
+                  min="0"
+                  max="50"
+                  step="1"
+                  inputMode="numeric"
+                  value={wasteFactor}
+                  onChange={(event) => setWasteFactor(event.target.value)}
+                  className="w-full"
+                />
+              </FormField>
             </div>
 
             {state.error !== null && (
-              <p
+              <div
                 role="alert"
-                className="flex items-start gap-2 rounded-2xl bg-destructive/5 px-3 py-2.5 text-sm text-destructive ring-1 ring-destructive/20"
+                className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" />
-                {state.error}
-              </p>
+                <span>{state.error}</span>
+              </div>
             )}
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                Gratis, tanpa akun — hasil langsung tampil di bawah.
+              </p>
               <Button
                 type="submit"
                 size="lg"
                 disabled={isPending}
-                className="w-full sm:self-end sm:min-w-52"
+                className="sm:min-w-48 cursor-pointer"
               >
                 {isPending ? (
                   <LoaderCircle className="animate-spin" />
@@ -174,18 +198,15 @@ export function EstimateForm({ options }: { options: FormOptions }) {
                 )}
                 {isPending ? "Menghitung…" : "Hitung Estimasi"}
               </Button>
-              <p className="text-xs text-muted-foreground sm:text-right">
-                Gratis, tanpa akun — hasil langsung tampil di bawah.
-              </p>
             </div>
           </CardContent>
         </Card>
 
         {selectedBuildingType.variants.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Spesifikasi Material</CardTitle>
-              <CardDescription>
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Spesifikasi Material</CardTitle>
+              <CardDescription className="text-sm">
                 Opsional — biarkan bawaan untuk memakai spesifikasi standar.
               </CardDescription>
             </CardHeader>
@@ -209,6 +230,7 @@ export function EstimateForm({ options }: { options: FormOptions }) {
         {state.estimate !== null && (
           <EditableEstimateResult
             estimate={state.estimate}
+            boronganRates={state.boronganRates}
             summary={{ buildingTypeName: selectedBuildingType.name, city }}
           />
         )}

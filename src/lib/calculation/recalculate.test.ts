@@ -7,6 +7,7 @@ const sampleInput: BuildingCostInput = {
   buildingTypeSlug: "rumah-tipe-36",
   buildingArea: 100,
   overheadProfitRate: 0.1,
+  wasteFactor: 0.1,
   components: [
     {
       slug: "pondasi",
@@ -45,11 +46,59 @@ describe("recalculateEstimate", () => {
     expect(result.components[0].materialCost).toBe(original.components[0].materialCost);
   });
 
+  test("exclude material menghilangkan item dan menurunkan biaya", () => {
+    const original = calculateBuildingCost(sampleInput);
+    const result = recalculateEstimate(original, {
+      materialPrices: {},
+      laborRates: {},
+      excludedMaterials: { "pondasi:Semen": true },
+      excludedLabor: {},
+    });
+
+    expect(result.components[0].materialBreakdown).toHaveLength(0);
+    expect(result.components[0].materialCost).toBe(0);
+    expect(result.totalMaterialCost).toBeLessThan(original.totalMaterialCost);
+    expect(result.totalCost).toBeLessThan(original.totalCost);
+  });
+
+  test("exclude labor menghilangkan item dan menurunkan biaya", () => {
+    const original = calculateBuildingCost(sampleInput);
+    const result = recalculateEstimate(original, {
+      materialPrices: {},
+      laborRates: {},
+      excludedMaterials: {},
+      excludedLabor: { "pondasi:Tukang Batu": true },
+    });
+
+    expect(result.components[0].laborBreakdown).toHaveLength(0);
+    expect(result.components[0].laborCost).toBe(0);
+    expect(result.totalLaborCost).toBeLessThan(original.totalLaborCost);
+    expect(result.totalCost).toBeLessThan(original.totalCost);
+  });
+
+  test("exclude semua material & labor = biaya nol", () => {
+    const original = calculateBuildingCost(sampleInput);
+    const result = recalculateEstimate(original, {
+      materialPrices: {},
+      laborRates: {},
+      excludedMaterials: { "pondasi:Semen": true, "dinding:Bata Merah": true },
+      excludedLabor: { "pondasi:Tukang Batu": true, "dinding:Tukang Batu": true },
+    });
+
+    expect(result.totalMaterialCost).toBe(0);
+    expect(result.totalLaborCost).toBe(0);
+    expect(result.subtotalCost).toBe(0);
+    expect(result.overheadProfitCost).toBe(0);
+    expect(result.totalCost).toBe(0);
+  });
+
   test("recalculate material price override", () => {
     const original = calculateBuildingCost(sampleInput);
     const result = recalculateEstimate(original, {
-      materialPrices: { Semen: 2000 },
+      materialPrices: { "pondasi:Semen": 2000 },
       laborRates: {},
+      excludedMaterials: {},
+      excludedLabor: {},
     });
 
     const pondasi = result.components[0];
@@ -66,7 +115,9 @@ describe("recalculateEstimate", () => {
     const original = calculateBuildingCost(sampleInput);
     const result = recalculateEstimate(original, {
       materialPrices: {},
-      laborRates: { "Tukang Batu": 200000 },
+      laborRates: { "pondasi:Tukang Batu": 200000 },
+      excludedMaterials: {},
+      excludedLabor: {},
     });
 
     const pondasi = result.components[0];
@@ -79,8 +130,10 @@ describe("recalculateEstimate", () => {
   test("recalculate combined material + labor overrides", () => {
     const original = calculateBuildingCost(sampleInput);
     const result = recalculateEstimate(original, {
-      materialPrices: { Semen: 2000, "Bata Merah": 1000 },
-      laborRates: { "Tukang Batu": 200000 },
+      materialPrices: { "pondasi:Semen": 2000, "dinding:Bata Merah": 1000 },
+      laborRates: { "pondasi:Tukang Batu": 200000 },
+      excludedMaterials: {},
+      excludedLabor: {},
     });
 
     expect(result.totalCost).toBeGreaterThan(original.totalCost);
@@ -91,8 +144,10 @@ describe("recalculateEstimate", () => {
   test("override tidak mempengaruhi komponen lain jika material beda", () => {
     const original = calculateBuildingCost(sampleInput);
     const result = recalculateEstimate(original, {
-      materialPrices: { Semen: 5000 },
+      materialPrices: { "pondasi:Semen": 5000 },
       laborRates: {},
+      excludedMaterials: {},
+      excludedLabor: {},
     });
 
     expect(result.components[0].materialBreakdown[0].price).toBe(5000);
@@ -105,8 +160,10 @@ describe("recalculateEstimate", () => {
   test("override harga yang sama dengan asli tidak mengubah apapun", () => {
     const original = calculateBuildingCost(sampleInput);
     const result = recalculateEstimate(original, {
-      materialPrices: { Semen: 1400 },
-      laborRates: { "Tukang Batu": 150000 },
+      materialPrices: { "pondasi:Semen": 1400 },
+      laborRates: { "pondasi:Tukang Batu": 150000 },
+      excludedMaterials: {},
+      excludedLabor: {},
     });
 
     expect(result.totalCost).toBe(original.totalCost);
@@ -118,8 +175,10 @@ describe("recalculateEstimate", () => {
   test("costPerSquareMeter di-recalculate dengan benar", () => {
     const original = calculateBuildingCost(sampleInput);
     const result = recalculateEstimate(original, {
-      materialPrices: { Semen: 3000 },
+      materialPrices: { "pondasi:Semen": 3000 },
       laborRates: {},
+      excludedMaterials: {},
+      excludedLabor: {},
     });
 
     expect(result.costPerSquareMeter).toBe(Math.round(result.totalCost / 100));

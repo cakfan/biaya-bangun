@@ -5,14 +5,15 @@ import {
   Building2,
   ChevronDown,
   MapPin,
-  Percent,
   Pencil,
+  Printer,
   RotateCcw,
   Ruler,
 } from "lucide-react";
 import type { BuildingCostEstimate, LaborLineCost, MaterialLineCost } from "@/lib/calculation/types";
 import type { PriceOverrides } from "@/lib/calculation/recalculate";
 import { recalculateEstimate } from "@/lib/calculation/recalculate";
+import type { BoronganRateByComponent } from "@/lib/calculation/load-borongan-rates";
 import { formatRupiah, formatVolume } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,13 +31,38 @@ import {
 import { CostSplit } from "./estimate-result";
 import type { EstimateSummary } from "./estimate-result";
 
-const EMPTY_OVERRIDES: PriceOverrides = { materialPrices: {}, laborRates: {} };
+const EMPTY_OVERRIDES: PriceOverrides = {
+  materialPrices: {},
+  laborRates: {},
+  excludedMaterials: {},
+  excludedLabor: {},
+};
+
+const TUKANG_LABOR_NAMES = new Set([
+  "Tukang Batu",
+  "Tukang Kayu",
+  "Tukang Besi",
+  "Tukang Cat",
+  "Kepala Tukang",
+]);
+
+function getTukangLaborCostPerUnit(
+  laborBreakdown: LaborLineCost[],
+  volume: number,
+): number {
+  const tukangCost = laborBreakdown
+    .filter((line) => TUKANG_LABOR_NAMES.has(line.laborTypeName))
+    .reduce((sum, line) => sum + line.cost, 0);
+  return volume > 0 ? tukangCost / volume : 0;
+}
 
 export function EditableEstimateResult({
   estimate,
+  boronganRates,
   summary,
 }: {
   estimate: BuildingCostEstimate;
+  boronganRates: BoronganRateByComponent;
   summary: EstimateSummary;
 }) {
   const [overrides, setOverrides] = useState<PriceOverrides>(EMPTY_OVERRIDES);
@@ -48,20 +74,48 @@ export function EditableEstimateResult({
 
   const hasOverrides =
     Object.keys(overrides.materialPrices).length > 0 ||
-    Object.keys(overrides.laborRates).length > 0;
+    Object.keys(overrides.laborRates).length > 0 ||
+    Object.keys(overrides.excludedMaterials).length > 0 ||
+    Object.keys(overrides.excludedLabor).length > 0;
 
-  const handleMaterialPriceChange = useCallback((materialName: string, price: number) => {
+  const handleMaterialPriceChange = useCallback((componentSlug: string, materialName: string, price: number) => {
+    const key = `${componentSlug}:${materialName}`;
     setOverrides((prev) => ({
       ...prev,
-      materialPrices: { ...prev.materialPrices, [materialName]: price },
+      materialPrices: { ...prev.materialPrices, [key]: price },
     }));
   }, []);
 
-  const handleLaborRateChange = useCallback((laborTypeName: string, dailyRate: number) => {
+  const handleLaborRateChange = useCallback((componentSlug: string, laborTypeName: string, dailyRate: number) => {
+    const key = `${componentSlug}:${laborTypeName}`;
     setOverrides((prev) => ({
       ...prev,
-      laborRates: { ...prev.laborRates, [laborTypeName]: dailyRate },
+      laborRates: { ...prev.laborRates, [key]: dailyRate },
     }));
+  }, []);
+
+  const handleMaterialExclude = useCallback((componentSlug: string, materialName: string) => {
+    const key = `${componentSlug}:${materialName}`;
+    setOverrides((prev) => {
+      const { [key]: _, ...rest } = prev.excludedMaterials;
+      const isExcluded = _ !== undefined;
+      return {
+        ...prev,
+        excludedMaterials: isExcluded ? rest : { ...rest, [key]: true },
+      };
+    });
+  }, []);
+
+  const handleLaborExclude = useCallback((componentSlug: string, laborTypeName: string) => {
+    const key = `${componentSlug}:${laborTypeName}`;
+    setOverrides((prev) => {
+      const { [key]: _, ...rest } = prev.excludedLabor;
+      const isExcluded = _ !== undefined;
+      return {
+        ...prev,
+        excludedLabor: isExcluded ? rest : { ...rest, [key]: true },
+      };
+    });
   }, []);
 
   const handleReset = useCallback(() => {
@@ -70,37 +124,33 @@ export function EditableEstimateResult({
 
   return (
     <section aria-label="Hasil estimasi" className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <Building2 className="size-4" />
+      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-0.5">
+          <Building2 className="size-3.5" />
           {summary.buildingTypeName}
         </span>
-        <span aria-hidden="true">·</span>
-        <span className="inline-flex items-center gap-1.5">
-          <Ruler className="size-4" />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-0.5">
+          <Ruler className="size-3.5" />
           {formatVolume(estimate.buildingArea)} m²
         </span>
-        <span aria-hidden="true">·</span>
-        <span className="inline-flex items-center gap-1.5">
-          <MapPin className="size-4" />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-0.5">
+          <MapPin className="size-3.5" />
           {summary.city}
         </span>
-        <span aria-hidden="true">·</span>
-        <span className="inline-flex items-center gap-1.5">
-          <Percent className="size-4" />
-          Overhead &amp; profit {(estimate.overheadProfitRate * 100).toFixed(0)}%
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-0.5">
+          OH {(estimate.overheadProfitRate * 100).toFixed(0)}% · Waste {(estimate.wasteFactor * 100).toFixed(0)}%
         </span>
       </div>
 
-      <Card>
-        <CardContent className="grid gap-8 lg:grid-cols-[minmax(16rem,auto)_1fr] lg:items-center">
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm text-muted-foreground">Total Estimasi</p>
-            <p className="font-mono text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+      <Card className="border-border/60 shadow-sm overflow-hidden">
+        <CardContent className="grid gap-6 pt-6 lg:grid-cols-[minmax(14rem,auto)_1fr] lg:items-center">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Estimasi</p>
+            <p className="font-mono text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
               {formatRupiah(displayEstimate.totalCost)}
             </p>
             <p className="text-sm text-muted-foreground">
-              ≈ {formatRupiah(displayEstimate.costPerSquareMeter)} per m²
+              ≈ {formatRupiah(displayEstimate.costPerSquareMeter)} / m²
             </p>
           </div>
 
@@ -108,31 +158,40 @@ export function EditableEstimateResult({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle>Rincian per Pekerjaan</CardTitle>
-          {hasOverrides && (
+      <Card className="border-border/60 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle className="text-lg">Rincian per Pekerjaan</CardTitle>
+          <div className="flex gap-2 no-print">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleReset}
-              className="gap-1.5"
+              onClick={() => window.print()}
+              className="gap-1.5 cursor-pointer"
             >
-              <RotateCcw className="size-3.5" />
-              Atur Ulang
+              <Printer className="size-3.5" />
+              Cetak
             </Button>
-          )}
+            {hasOverrides && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                className="gap-1.5"
+              >
+                <RotateCcw className="size-3.5" />
+                Atur Ulang
+              </Button>
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-1/2">Komponen</TableHead>
-                <TableHead className="text-right">Volume</TableHead>
-                <TableHead className="text-right">Bahan</TableHead>
-                <TableHead className="text-right">Upah</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-10">Komponen</TableHead>
+                <TableHead className="text-right w-[160px]">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -141,41 +200,30 @@ export function EditableEstimateResult({
                   key={component.componentSlug}
                   component={component}
                   originalComponent={estimate.components[index]}
+                  boronganRate={boronganRates[component.componentSlug]}
                   overrides={overrides}
                   onMaterialPriceChange={handleMaterialPriceChange}
                   onLaborRateChange={handleLaborRateChange}
+                  onMaterialExclude={handleMaterialExclude}
+                  onLaborExclude={handleLaborExclude}
                 />
               ))}
             </TableBody>
             <TableFooter>
-              <TableRow>
-                <TableCell colSpan={2} className="font-semibold">
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableCell className="font-semibold pl-10">
                   Subtotal
-                </TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">
-                  {formatRupiah(displayEstimate.totalMaterialCost)}
-                </TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">
-                  {formatRupiah(displayEstimate.totalLaborCost)}
                 </TableCell>
                 <TableCell className="text-right font-semibold tabular-nums">
                   {formatRupiah(displayEstimate.subtotalCost)}
                 </TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell colSpan={4} className="font-semibold">
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableCell className="font-semibold pl-10">
                   Overhead &amp; profit ({(estimate.overheadProfitRate * 100).toFixed(0)}%)
                 </TableCell>
                 <TableCell className="text-right font-semibold tabular-nums">
                   {formatRupiah(displayEstimate.overheadProfitCost)}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell colSpan={4} className="text-base font-semibold">
-                  Total Estimasi
-                </TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">
-                  {formatRupiah(displayEstimate.totalCost)}
                 </TableCell>
               </TableRow>
             </TableFooter>
@@ -183,11 +231,10 @@ export function EditableEstimateResult({
         </CardContent>
       </Card>
 
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Estimasi bersifat indikatif dan dihitung dari koefisien AHSP serta harga bahan di{" "}
-        {summary.city}. Klik ikon{" "}
-        <Pencil className="inline size-3 align-text-bottom" /> untuk mengubah harga bahan atau upah
-        secara manual.
+      <p className="text-xs leading-relaxed text-muted-foreground no-print">
+        Estimasi indikatif dari koefisien AHSP &amp; harga material di {summary.city}.{" "}
+        Centang/buka centang item untuk menambah/menghapus dari perhitungan. Klik{" "}
+        <Pencil className="inline size-3 align-text-bottom" /> untuk ubah harga satuan.
       </p>
     </section>
   );
@@ -196,31 +243,43 @@ export function EditableEstimateResult({
 function EditableComponentRow({
   component,
   originalComponent,
+  boronganRate,
   overrides,
   onMaterialPriceChange,
   onLaborRateChange,
+  onMaterialExclude,
+  onLaborExclude,
 }: {
   component: BuildingCostEstimate["components"][number];
   originalComponent: BuildingCostEstimate["components"][number];
+  boronganRate: number | undefined;
   overrides: PriceOverrides;
-  onMaterialPriceChange: (materialName: string, price: number) => void;
-  onLaborRateChange: (laborTypeName: string, dailyRate: number) => void;
+  onMaterialPriceChange: (componentSlug: string, materialName: string, price: number) => void;
+  onLaborRateChange: (componentSlug: string, laborTypeName: string, dailyRate: number) => void;
+  onMaterialExclude: (componentSlug: string, materialName: string) => void;
+  onLaborExclude: (componentSlug: string, laborTypeName: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const prefix = `${component.componentSlug}:`;
 
-  const hasMaterialOverrides = component.materialBreakdown.some(
-    (line, i) => line.price !== originalComponent.materialBreakdown[i]?.price,
-  );
-  const hasLaborOverrides = component.laborBreakdown.some(
-    (line, i) => line.dailyRate !== originalComponent.laborBreakdown[i]?.dailyRate,
-  );
-  const isEdited = hasMaterialOverrides || hasLaborOverrides;
+  const hasMaterialOverrides = component.materialBreakdown.some((line) => {
+    const original = originalComponent.materialBreakdown.find((m) => m.materialName === line.materialName);
+    return original === undefined || line.price !== original.price;
+  });
+  const hasLaborOverrides = component.laborBreakdown.some((line) => {
+    const original = originalComponent.laborBreakdown.find((l) => l.laborTypeName === line.laborTypeName);
+    return original === undefined || line.dailyRate !== original.dailyRate;
+  });
+  const hasExclusions =
+    originalComponent.materialBreakdown.some((m) => (prefix + m.materialName) in overrides.excludedMaterials) ||
+    originalComponent.laborBreakdown.some((l) => (prefix + l.laborTypeName) in overrides.excludedLabor);
+  const isEdited = hasMaterialOverrides || hasLaborOverrides || hasExclusions;
 
   return (
     <>
-      <TableRow className="align-top">
-        <TableCell>
-          <div className="flex items-start gap-2">
+      <TableRow className="align-top group">
+        <TableCell className="pl-2">
+          <div className="flex items-start gap-1.5">
             <Button
               type="button"
               variant="ghost"
@@ -228,16 +287,16 @@ function EditableComponentRow({
               aria-expanded={isOpen}
               aria-label={`Tampilkan rincian ${component.componentName}`}
               onClick={() => setIsOpen((current) => !current)}
-              className="mt-0.5 shrink-0"
+              className="mt-0.5 shrink-0 cursor-pointer"
             >
               <ChevronDown
-                className={cn("size-4 transition-transform", isOpen ? "rotate-0" : "-rotate-90")}
+                className={cn("size-4 transition-transform duration-200", isOpen ? "rotate-0" : "-rotate-90")}
               />
             </Button>
             <div>
-              <span className="text-sm font-medium">{component.componentName}</span>
+              <span className="text-sm font-medium leading-tight">{component.componentName}</span>
               {component.variantName !== null && (
-                <span className="block text-sm font-normal text-muted-foreground">
+                <span className="block text-xs text-muted-foreground">
                   {component.variantName}
                 </span>
               )}
@@ -250,23 +309,37 @@ function EditableComponentRow({
             </div>
           </div>
         </TableCell>
-        <TableCell className="text-right tabular-nums">
-          {formatVolume(component.volume)} {component.unit}
-        </TableCell>
-        <TableCell className="text-right tabular-nums">
-          {formatRupiah(component.materialCost)}
-        </TableCell>
-        <TableCell className="text-right tabular-nums">
-          {formatRupiah(component.laborCost)}
-        </TableCell>
-        <TableCell className="text-right font-medium tabular-nums">
+        <TableCell className="text-right font-medium tabular-nums text-sm">
           {formatRupiah(component.totalCost)}
         </TableCell>
       </TableRow>
       {isOpen && (
         <TableRow>
-          <TableCell colSpan={5} className="bg-muted/40 py-4">
-            <EditableComponentBreakdown
+          <TableCell colSpan={2} className="bg-muted/20 py-4 px-6">
+            <div className="flex flex-col gap-3 text-sm">
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
+                <span>Volume: {formatVolume(component.volume)} {component.unit}</span>
+                <span>Bahan: {formatRupiah(component.materialCost)}</span>
+                <span>Upah: {formatRupiah(component.laborCost)}</span>
+                {boronganRate !== undefined && (() => {
+                  const tukangPerUnit = getTukangLaborCostPerUnit(component.laborBreakdown, component.volume);
+                  if (tukangPerUnit === 0) return null;
+                  const ratio = tukangPerUnit / boronganRate;
+                  return (
+                    <span>
+                      Borongan: {formatRupiah(boronganRate)}/{component.unit}{" "}
+                      <span className={cn(
+                        "font-medium",
+                        ratio > 1.3 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                      )}>
+                        (rasio {(ratio * 100).toFixed(0)}%)
+                      </span>
+                    </span>
+                  );
+                })()}
+              </div>
+              <EditableComponentBreakdown
+              componentSlug={component.componentSlug}
               materialLines={component.materialBreakdown}
               laborLines={component.laborBreakdown}
               originalMaterialLines={originalComponent.materialBreakdown}
@@ -274,7 +347,10 @@ function EditableComponentRow({
               overrides={overrides}
               onMaterialPriceChange={onMaterialPriceChange}
               onLaborRateChange={onLaborRateChange}
+              onMaterialExclude={onMaterialExclude}
+              onLaborExclude={onLaborExclude}
             />
+            </div>
           </TableCell>
         </TableRow>
       )}
@@ -283,6 +359,7 @@ function EditableComponentRow({
 }
 
 function EditableComponentBreakdown({
+  componentSlug,
   materialLines,
   laborLines,
   originalMaterialLines,
@@ -290,14 +367,19 @@ function EditableComponentBreakdown({
   overrides,
   onMaterialPriceChange,
   onLaborRateChange,
+  onMaterialExclude,
+  onLaborExclude,
 }: {
+  componentSlug: string;
   materialLines: MaterialLineCost[];
   laborLines: LaborLineCost[];
   originalMaterialLines: MaterialLineCost[];
   originalLaborLines: LaborLineCost[];
   overrides: PriceOverrides;
-  onMaterialPriceChange: (materialName: string, price: number) => void;
-  onLaborRateChange: (laborTypeName: string, dailyRate: number) => void;
+  onMaterialPriceChange: (componentSlug: string, materialName: string, price: number) => void;
+  onLaborRateChange: (componentSlug: string, laborTypeName: string, dailyRate: number) => void;
+  onMaterialExclude: (componentSlug: string, materialName: string) => void;
+  onLaborExclude: (componentSlug: string, laborTypeName: string) => void;
 }) {
   const hasMaterial = materialLines.length > 0;
   const hasLabor = laborLines.length > 0;
@@ -307,42 +389,60 @@ function EditableComponentBreakdown({
   }
 
   return (
-    <div className="grid gap-4 pl-9 sm:grid-cols-2">
+    <div className="grid gap-6 pl-9 sm:grid-cols-2">
       {hasMaterial && (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Bahan
           </p>
-          <ul className="flex flex-col gap-2 text-sm">
-            {materialLines.map((line, index) => (
-              <li key={line.materialName}>
-                <EditableMaterialLine
-                  line={line}
-                  originalLine={originalMaterialLines[index]}
-                  overriddenPrice={overrides.materialPrices[line.materialName]}
-                  onPriceChange={(price) => onMaterialPriceChange(line.materialName, price)}
-                />
-              </li>
-            ))}
+          <ul className="flex flex-col gap-1 text-sm">
+            {originalMaterialLines.map((line) => {
+              const key = `${componentSlug}:${line.materialName}`;
+              const isExcluded = key in overrides.excludedMaterials;
+              const activeLine = isExcluded
+                ? line
+                : materialLines.find((m) => m.materialName === line.materialName) ?? line;
+              return (
+                <li key={line.materialName}>
+                  <EditableMaterialLine
+                    line={activeLine}
+                    originalLine={line}
+                    isExcluded={isExcluded}
+                    overriddenPrice={overrides.materialPrices[key]}
+                    onPriceChange={(price) => onMaterialPriceChange(componentSlug, line.materialName, price)}
+                    onExclude={() => onMaterialExclude(componentSlug, line.materialName)}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
       {hasLabor && (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Upah
           </p>
-          <ul className="flex flex-col gap-2 text-sm">
-            {laborLines.map((line, index) => (
-              <li key={line.laborTypeName}>
-                <EditableLaborLine
-                  line={line}
-                  originalLine={originalLaborLines[index]}
-                  overriddenRate={overrides.laborRates[line.laborTypeName]}
-                  onRateChange={(dailyRate) => onLaborRateChange(line.laborTypeName, dailyRate)}
-                />
-              </li>
-            ))}
+          <ul className="flex flex-col gap-1 text-sm">
+            {originalLaborLines.map((line) => {
+              const key = `${componentSlug}:${line.laborTypeName}`;
+              const isExcluded = key in overrides.excludedLabor;
+              const activeLine = isExcluded
+                ? line
+                : laborLines.find((l) => l.laborTypeName === line.laborTypeName) ?? line;
+              return (
+                <li key={line.laborTypeName}>
+                  <EditableLaborLine
+                    line={activeLine}
+                    originalLine={line}
+                    isExcluded={isExcluded}
+                    overriddenRate={overrides.laborRates[key]}
+                    onRateChange={(dailyRate) => onLaborRateChange(componentSlug, line.laborTypeName, dailyRate)}
+                    onExclude={() => onLaborExclude(componentSlug, line.laborTypeName)}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -353,62 +453,116 @@ function EditableComponentBreakdown({
 function EditableMaterialLine({
   line,
   originalLine,
+  isExcluded,
   overriddenPrice,
   onPriceChange,
+  onExclude,
 }: {
   line: MaterialLineCost;
   originalLine: MaterialLineCost;
+  isExcluded: boolean;
   overriddenPrice: number | undefined;
   onPriceChange: (price: number) => void;
+  onExclude: () => void;
 }) {
   const isOverridden = overriddenPrice !== undefined && overriddenPrice !== originalLine.price;
 
   return (
-    <div className="flex items-baseline justify-between gap-2">
-      <span className="min-w-0 flex-1">
-        {line.materialName}{" "}
-        <span className="text-muted-foreground">
-          {formatVolume(line.coefficient)} {line.unit} ×{" "}
+    <label
+      className={cn(
+        "flex flex-col gap-1 rounded-md px-2 py-1.5 -mx-2 transition-colors",
+        isExcluded ? "opacity-40" : "hover:bg-muted/50",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={!isExcluded}
+          onChange={onExclude}
+          className="size-3.5 shrink-0 accent-foreground"
+        />
+        <span className={cn("min-w-0 flex-1 text-sm", isExcluded && "line-through")}>
+          {originalLine.materialName}{" "}
+          <span className="text-muted-foreground">
+            {formatVolume(originalLine.coefficient)} {originalLine.unit}
+          </span>
         </span>
-      </span>
-      <EditablePriceField
-        value={line.price}
-        isOverridden={isOverridden}
-        onChange={onPriceChange}
-      />
-      <span className="tabular-nums">{formatRupiah(line.cost)}</span>
-    </div>
+        <span className="text-sm font-medium tabular-nums">
+          {formatRupiah(line.cost)}
+        </span>
+      </div>
+      {!isExcluded && (
+        <div className="flex items-center gap-2 pl-5.5">
+          <span className="text-xs text-muted-foreground">Harga:</span>
+          <EditablePriceField
+            value={line.price}
+            isOverridden={isOverridden}
+            onChange={onPriceChange}
+          />
+          <span className="text-xs text-muted-foreground">
+            × {formatVolume(originalLine.coefficient)} {originalLine.unit}
+          </span>
+        </div>
+      )}
+    </label>
   );
 }
 
 function EditableLaborLine({
   line,
   originalLine,
+  isExcluded,
   overriddenRate,
   onRateChange,
+  onExclude,
 }: {
   line: LaborLineCost;
   originalLine: LaborLineCost;
+  isExcluded: boolean;
   overriddenRate: number | undefined;
   onRateChange: (dailyRate: number) => void;
+  onExclude: () => void;
 }) {
   const isOverridden = overriddenRate !== undefined && overriddenRate !== originalLine.dailyRate;
 
   return (
-    <div className="flex items-baseline justify-between gap-2">
-      <span className="min-w-0 flex-1">
-        {line.laborTypeName}{" "}
-        <span className="text-muted-foreground">
-          {formatVolume(line.coefficient)} OH ×{" "}
+    <label
+      className={cn(
+        "flex flex-col gap-1 rounded-md px-2 py-1.5 -mx-2 transition-colors",
+        isExcluded ? "opacity-40" : "hover:bg-muted/50",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={!isExcluded}
+          onChange={onExclude}
+          className="size-3.5 shrink-0 accent-foreground"
+        />
+        <span className={cn("min-w-0 flex-1 text-sm", isExcluded && "line-through")}>
+          {originalLine.laborTypeName}{" "}
+          <span className="text-muted-foreground">
+            {formatVolume(originalLine.coefficient)} OH
+          </span>
         </span>
-      </span>
-      <EditablePriceField
-        value={line.dailyRate}
-        isOverridden={isOverridden}
-        onChange={onRateChange}
-      />
-      <span className="tabular-nums">{formatRupiah(line.cost)}</span>
-    </div>
+        <span className="text-sm font-medium tabular-nums">
+          {formatRupiah(line.cost)}
+        </span>
+      </div>
+      {!isExcluded && (
+        <div className="flex items-center gap-2 pl-5.5">
+          <span className="text-xs text-muted-foreground">Harga:</span>
+          <EditablePriceField
+            value={line.dailyRate}
+            isOverridden={isOverridden}
+            onChange={onRateChange}
+          />
+          <span className="text-xs text-muted-foreground">
+            × {formatVolume(originalLine.coefficient)} OH
+          </span>
+        </div>
+      )}
+    </label>
   );
 }
 

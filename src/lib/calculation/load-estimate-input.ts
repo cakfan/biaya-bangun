@@ -14,6 +14,7 @@ import {
   CITY_SURABAYA,
   COMPONENT_VARIANTS,
   DEFAULT_OVERHEAD_PROFIT_RATE,
+  DEFAULT_WASTE_FACTOR,
 } from "@/db/seed-data";
 import type { BuildingCostInput } from "./types";
 
@@ -179,6 +180,7 @@ export function loadEstimateInput(
     buildingTypeSlug,
     buildingArea,
     overheadProfitRate: DEFAULT_OVERHEAD_PROFIT_RATE,
+    wasteFactor: DEFAULT_WASTE_FACTOR,
     components,
     materials: Array.from(materialById.values()),
     laborTypes: Array.from(laborTypeById.values()),

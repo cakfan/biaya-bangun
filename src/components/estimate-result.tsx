@@ -137,37 +137,41 @@ export function EstimateResult({
 export function CostSplit({ estimate }: { estimate: BuildingCostEstimate }) {
   const total = estimate.totalCost;
   const segments = [
-    { label: "Bahan", value: estimate.totalMaterialCost, className: "bg-foreground" },
-    { label: "Upah", value: estimate.totalLaborCost, className: "bg-muted-foreground/50" },
+    { label: "Bahan", value: estimate.totalMaterialCost, className: "bg-primary" },
+    { label: "Upah", value: estimate.totalLaborCost, className: "bg-primary/40" },
     { label: "Overhead & profit", value: estimate.overheadProfitCost, className: "bg-border" },
   ].map((segment) => {
     const rawPercent = total > 0 ? (segment.value / total) * 100 : 0;
     return {
       ...segment,
-      percent: rawPercent > 0 && rawPercent < 0.75 ? 0.75 : rawPercent,
+      percent: rawPercent > 0 && rawPercent < 1 ? 1 : rawPercent,
     };
   });
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Komposisi Biaya
       </p>
       <div
         aria-hidden="true"
-        className="flex h-3 w-full overflow-hidden rounded-full ring-1 ring-foreground/10"
+        className="flex h-2.5 w-full overflow-hidden rounded-full ring-1 ring-foreground/5"
       >
         {segments.map((segment) => (
-          <div key={segment.label} className={segment.className} style={{ width: `${segment.percent}%` }} />
+          <div
+            key={segment.label}
+            className={cn(segment.className, "transition-all duration-500")}
+            style={{ width: `${segment.percent}%` }}
+          />
         ))}
       </div>
       <div className="flex flex-wrap gap-x-5 gap-y-2">
         {segments.map((segment) => (
           <div key={segment.label} className="flex items-center gap-1.5 text-sm">
-            <span aria-hidden="true" className={cn("size-2.5 rounded-full", segment.className)} />
+            <span aria-hidden="true" className={cn("size-2 rounded-full", segment.className)} />
             <span className="text-muted-foreground">{segment.label}</span>
-            <span className="font-mono tabular-nums">{formatRupiah(segment.value)}</span>
-            <span className="text-muted-foreground">({Math.round(segment.percent)}%)</span>
+            <span className="font-mono font-medium tabular-nums">{formatRupiah(segment.value)}</span>
+            <span className="text-muted-foreground text-xs">({Math.round(segment.percent)}%)</span>
           </div>
         ))}
       </div>

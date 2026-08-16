@@ -5,9 +5,13 @@ import { loadEstimateInput } from "@/lib/calculation/load-estimate-input";
 import type { SelectedVariants } from "@/lib/calculation/load-estimate-input";
 import type { BuildingCostEstimate } from "@/lib/calculation/types";
 import { VARIANT_FIELD_PREFIX } from "@/lib/calculation/types";
+import { DEFAULT_WASTE_FACTOR } from "@/db/seed-data";
+import { loadBoronganRates } from "@/lib/calculation/load-borongan-rates";
+import type { BoronganRateByComponent } from "@/lib/calculation/load-borongan-rates";
 
 export type EstimateFormState = {
   estimate: BuildingCostEstimate | null;
+  boronganRates: BoronganRateByComponent;
   error: string | null;
 };
 
@@ -32,22 +36,29 @@ export async function calculateEstimateAction(
   const city = String(formData.get("city") ?? "").trim();
 
   if (buildingTypeSlug === "") {
-    return { estimate: null, error: "Pilih tipe bangunan." };
+    return { estimate: null, boronganRates: {}, error: "Pilih tipe bangunan." };
   }
   if (!Number.isFinite(buildingArea) || buildingArea <= 0) {
-    return { estimate: null, error: "Luas bangunan harus berupa angka positif." };
+    return { estimate: null, boronganRates: {}, error: "Luas bangunan harus berupa angka positif." };
   }
   if (city === "") {
-    return { estimate: null, error: "Pilih kota." };
+    return { estimate: null, boronganRates: {}, error: "Pilih kota." };
   }
 
   try {
-    const estimate = calculateBuildingCost(
-      loadEstimateInput(buildingTypeSlug, buildingArea, city, readSelectedVariants(formData)),
-    );
-    return { estimate, error: null };
+    const wasteFactorRaw = Number(formData.get("wasteFactor"));
+    const wasteFactor = Number.isFinite(wasteFactorRaw) && wasteFactorRaw >= 0 && wasteFactorRaw <= 0.5
+      ? wasteFactorRaw
+      : DEFAULT_WASTE_FACTOR;
+
+    const input = loadEstimateInput(buildingTypeSlug, buildingArea, city, readSelectedVariants(formData));
+    input.wasteFactor = wasteFactor;
+
+    const estimate = calculateBuildingCost(input);
+    const boronganRates = loadBoronganRates(city);
+    return { estimate, boronganRates, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Terjadi kesalahan saat menghitung estimasi.";
-    return { estimate: null, error: message };
+    return { estimate: null, boronganRates: {}, error: message };
   }
 }

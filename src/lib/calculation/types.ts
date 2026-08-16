@@ -37,6 +37,7 @@ export type BuildingCostInput = {
   buildingTypeSlug: string;
   buildingArea: number;
   overheadProfitRate: number;
+  wasteFactor: number;
   components: ComponentInput[];
   materials: MaterialInput[];
   laborTypes: LaborTypeInput[];
@@ -74,6 +75,7 @@ export type BuildingCostEstimate = {
   buildingTypeSlug: string;
   buildingArea: number;
   overheadProfitRate: number;
+  wasteFactor: number;
   components: ComponentCostEstimate[];
   totalMaterialCost: number;
   totalLaborCost: number;

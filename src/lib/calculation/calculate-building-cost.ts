@@ -1,8 +1,5 @@
 import type { ComponentCostEstimate, BuildingCostEstimate, BuildingCostInput } from "./types";
-
-function roundToRupiah(value: number): number {
-  return Math.round(value);
-}
+import { roundToRupiah } from "@/lib/format-currency";
 
 function validateInput(input: BuildingCostInput): void {
   if (!Number.isFinite(input.buildingArea) || input.buildingArea <= 0) {
@@ -38,10 +35,11 @@ export function calculateBuildingCost(input: BuildingCostInput): BuildingCostEst
 
   const components = input.components.map<ComponentCostEstimate>((component) => {
     const volume = component.volumeMultiplierPerSquareMeter * input.buildingArea;
+    const wasteMultiplier = 1 + input.wasteFactor;
 
     const materialBreakdown = component.materialCoefficients.map((coefficient) => {
       const material = materialBySlug.get(coefficient.materialSlug)!;
-      const cost = roundToRupiah(coefficient.coefficient * material.price * volume);
+      const cost = roundToRupiah(coefficient.coefficient * material.price * volume * wasteMultiplier);
       return {
         materialName: material.name,
         unit: material.unit,
@@ -89,6 +87,7 @@ export function calculateBuildingCost(input: BuildingCostInput): BuildingCostEst
     buildingTypeSlug: input.buildingTypeSlug,
     buildingArea: input.buildingArea,
     overheadProfitRate: input.overheadProfitRate,
+    wasteFactor: input.wasteFactor,
     components,
     totalMaterialCost,
     totalLaborCost,

@@ -4,11 +4,26 @@ import { boronganRates, workComponents } from "@/db/schema";
 import { calculateBuildingCost } from "@/lib/calculation/calculate-building-cost";
 import { loadEstimateInput } from "@/lib/calculation/load-estimate-input";
 import { formatRupiah } from "@/lib/format-currency";
+import type { ComponentCostEstimate } from "@/lib/calculation/types";
 
 const BUILDING_TYPE_SLUG = "rumah-tipe-36";
 const BUILDING_AREA = 36;
 const MARKET_BORONGAN_MIN_PER_SQUARE_METER = 3_500_000;
 const MARKET_BORONGAN_MAX_PER_SQUARE_METER = 5_000_000;
+
+const TUKANG_LABOR_NAMES = new Set([
+  "Tukang Batu",
+  "Tukang Kayu",
+  "Tukang Besi",
+  "Tukang Cat",
+  "Kepala Tukang",
+]);
+
+function getTukangLaborCost(component: ComponentCostEstimate): number {
+  return component.laborBreakdown
+    .filter((line) => TUKANG_LABOR_NAMES.has(line.laborTypeName))
+    .reduce((sum, line) => sum + line.cost, 0);
+}
 
 function main(): void {
   const estimate = calculateBuildingCost(loadEstimateInput(BUILDING_TYPE_SLUG, BUILDING_AREA));
@@ -29,20 +44,28 @@ function main(): void {
   console.log("");
 
   for (const component of estimate.components) {
-    const costPerUnit = component.totalCost / component.volume;
+    const costPerUnit = component.volume > 0 ? component.totalCost / component.volume : 0;
     console.log(
       `- ${component.componentName} (${component.volume.toFixed(2)} ${component.unit})`,
     );
     console.log(
-      `    bahan ${formatRupiah(component.materialCost)}  |  upah ${formatRupiah(component.laborCost)}  |  total ${formatRupiah(component.totalCost)} (${formatRupiah(costPerUnit)}/${component.unit})`,
+      `    bahan ${formatRupiah(component.materialCost)}  |  upah ${formatRupiah(component.laborCost)}  |  total ${formatRupiah(component.totalCost)}${component.volume > 0 ? ` (${formatRupiah(costPerUnit)}/${component.unit})` : ""}`,
     );
 
     const boronganPrice = boronganByComponentSlug.get(component.componentSlug);
     if (boronganPrice !== undefined) {
-      const ratio = component.laborCost / component.volume / boronganPrice;
-      console.log(
-        `    vs borongan pasar ${formatRupiah(boronganPrice)}/${component.unit} (upah) => rasio ${(ratio * 100).toFixed(0)}%`,
-      );
+      const tukangCost = getTukangLaborCost(component);
+      if (tukangCost > 0) {
+        const tukangCostPerUnit = tukangCost / component.volume;
+        const ratio = tukangCostPerUnit / boronganPrice;
+        console.log(
+          `    vs borongan pasar ${formatRupiah(boronganPrice)}/${component.unit} (upah tukang: ${formatRupiah(tukangCostPerUnit)}) => rasio ${(ratio * 100).toFixed(0)}%`,
+        );
+      } else {
+        console.log(
+          `    vs borongan pasar ${formatRupiah(boronganPrice)}/${component.unit} (tidak ada komponen tukang)`,
+        );
+      }
     }
   }
 
@@ -51,6 +74,7 @@ function main(): void {
   console.log(`Total upah   : ${formatRupiah(estimate.totalLaborCost)}`);
   console.log(`Subtotal     : ${formatRupiah(estimate.subtotalCost)}`);
   console.log(`Overhead+profit (${(estimate.overheadProfitRate * 100).toFixed(0)}%): ${formatRupiah(estimate.overheadProfitCost)}`);
+  console.log(`Waste factor: ${(estimate.wasteFactor * 100).toFixed(0)}% (sudah termasuk di total bahan)`);
   console.log(`TOTAL ESTIMASI: ${formatRupiah(estimate.totalCost)}`);
   console.log(`= ${formatRupiah(estimate.costPerSquareMeter)}/m2`);
 

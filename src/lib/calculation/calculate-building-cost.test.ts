@@ -6,6 +6,7 @@ const sampleInput: BuildingCostInput = {
   buildingTypeSlug: "rumah-tipe-36",
   buildingArea: 100,
   overheadProfitRate: 0.1,
+  wasteFactor: 0.1,
   components: [
     {
       slug: "contoh-komponen",
@@ -39,22 +40,22 @@ describe("calculateBuildingCost", () => {
 
     const component = estimate.components[0];
     expect(component.volume).toBe(2);
-    expect(component.materialBreakdown[0].cost).toBe(6000);
+    expect(component.materialBreakdown[0].cost).toBe(6600);
     expect(component.laborBreakdown[0].cost).toBe(200000);
-    expect(component.materialCost).toBe(6000);
+    expect(component.materialCost).toBe(6600);
     expect(component.laborCost).toBe(200000);
-    expect(component.totalCost).toBe(206000);
+    expect(component.totalCost).toBe(206600);
   });
 
   test("menjumlahkan biaya, overhead & profit, dan biaya per m2", () => {
     const estimate = calculateBuildingCost(sampleInput);
 
-    expect(estimate.totalMaterialCost).toBe(6000);
+    expect(estimate.totalMaterialCost).toBe(6600);
     expect(estimate.totalLaborCost).toBe(200000);
-    expect(estimate.subtotalCost).toBe(206000);
-    expect(estimate.overheadProfitCost).toBe(20600);
-    expect(estimate.totalCost).toBe(226600);
-    expect(estimate.costPerSquareMeter).toBe(2266);
+    expect(estimate.subtotalCost).toBe(206600);
+    expect(estimate.overheadProfitCost).toBe(20660);
+    expect(estimate.totalCost).toBe(227260);
+    expect(estimate.costPerSquareMeter).toBe(2273);
   });
 
   test("menghitung perhitungan skala penuh untuk rumah tipe 36", () => {
@@ -77,6 +78,14 @@ describe("calculateBuildingCost", () => {
     });
 
     expect(estimate.components[0].variantName).toBe("Spandek + Rangka Baja Ringan");
+  });
+
+  test("menerapkan waste factor ke biaya bahan", () => {
+    const estimate = calculateBuildingCost({ ...sampleInput, wasteFactor: 0 });
+    expect(estimate.components[0].materialBreakdown[0].cost).toBe(6000);
+
+    const estimateWithWaste = calculateBuildingCost({ ...sampleInput, wasteFactor: 0.15 });
+    expect(estimateWithWaste.components[0].materialBreakdown[0].cost).toBe(6900);
   });
 
   test("melempar error jika luas bangunan tidak valid", () => {

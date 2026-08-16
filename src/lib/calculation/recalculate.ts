@@ -4,47 +4,56 @@ import type {
   MaterialLineCost,
   LaborLineCost,
 } from "./types";
+import { roundToRupiah } from "@/lib/format-currency";
 
 export type PriceOverrides = {
   materialPrices: Record<string, number>;
   laborRates: Record<string, number>;
+  excludedMaterials: Record<string, true>;
+  excludedLabor: Record<string, true>;
 };
 
-const EMPTY_OVERRIDES: PriceOverrides = { materialPrices: {}, laborRates: {} };
-
-function roundToRupiah(value: number): number {
-  return Math.round(value);
-}
+const EMPTY_OVERRIDES: PriceOverrides = {
+  materialPrices: {},
+  laborRates: {},
+  excludedMaterials: {},
+  excludedLabor: {},
+};
 
 function recalculateComponent(
   component: ComponentCostEstimate,
   overrides: PriceOverrides,
 ): ComponentCostEstimate {
+  const prefix = `${component.componentSlug}:`;
   const volume = component.volume;
 
-  const materialBreakdown: MaterialLineCost[] = component.materialBreakdown.map((line) => {
-    const overriddenPrice = overrides.materialPrices[line.materialName];
-    if (overriddenPrice === undefined || overriddenPrice === line.price) {
-      return line;
-    }
-    return {
-      ...line,
-      price: overriddenPrice,
-      cost: roundToRupiah(line.coefficient * overriddenPrice * volume),
-    };
-  });
+  const materialBreakdown: MaterialLineCost[] = component.materialBreakdown
+    .filter((line) => !(prefix + line.materialName in overrides.excludedMaterials))
+    .map((line) => {
+      const overriddenPrice = overrides.materialPrices[prefix + line.materialName];
+      if (overriddenPrice === undefined || overriddenPrice === line.price) {
+        return line;
+      }
+      return {
+        ...line,
+        price: overriddenPrice,
+        cost: roundToRupiah(line.coefficient * overriddenPrice * volume),
+      };
+    });
 
-  const laborBreakdown: LaborLineCost[] = component.laborBreakdown.map((line) => {
-    const overriddenRate = overrides.laborRates[line.laborTypeName];
-    if (overriddenRate === undefined || overriddenRate === line.dailyRate) {
-      return line;
-    }
-    return {
-      ...line,
-      dailyRate: overriddenRate,
-      cost: roundToRupiah(line.coefficient * overriddenRate * volume),
-    };
-  });
+  const laborBreakdown: LaborLineCost[] = component.laborBreakdown
+    .filter((line) => !(prefix + line.laborTypeName in overrides.excludedLabor))
+    .map((line) => {
+      const overriddenRate = overrides.laborRates[prefix + line.laborTypeName];
+      if (overriddenRate === undefined || overriddenRate === line.dailyRate) {
+        return line;
+      }
+      return {
+        ...line,
+        dailyRate: overriddenRate,
+        cost: roundToRupiah(line.coefficient * overriddenRate * volume),
+      };
+    });
 
   const materialCost = materialBreakdown.reduce((sum, line) => sum + line.cost, 0);
   const laborCost = laborBreakdown.reduce((sum, line) => sum + line.cost, 0);
