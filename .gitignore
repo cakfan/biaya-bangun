@@ -18,11 +18,10 @@
 /out/
 
 # database (sqlite runtime files)
-/data/*
-!/data/price-snapshots/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+!data/biaya-bangun.sqlite
 
 # production
 /build

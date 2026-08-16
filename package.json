@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "bun run db:migrate && bun run db:seed",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
