@@ -3,19 +3,12 @@ import { db } from "@/db";
 import { boronganRates, workComponents } from "@/db/schema";
 import { calculateBuildingCost } from "@/lib/calculation/calculate-building-cost";
 import { loadEstimateInput } from "@/lib/calculation/load-estimate-input";
+import { formatRupiah } from "@/lib/format-currency";
 
 const BUILDING_TYPE_SLUG = "rumah-tipe-36";
 const BUILDING_AREA = 36;
 const MARKET_BORONGAN_MIN_PER_SQUARE_METER = 3_500_000;
 const MARKET_BORONGAN_MAX_PER_SQUARE_METER = 5_000_000;
-
-function formatRupiah(value: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function main(): void {
   const estimate = calculateBuildingCost(loadEstimateInput(BUILDING_TYPE_SLUG, BUILDING_AREA));
