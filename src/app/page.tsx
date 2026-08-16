@@ -2,6 +2,8 @@ import { Building2, Calculator, MapPin, ShieldCheck } from "lucide-react";
 import { EstimateForm } from "@/components/estimate-form";
 import { loadFormOptions } from "@/lib/calculation/load-form-options";
 
+export const dynamic = "force-dynamic";
+
 export default function Home() {
   const options = loadFormOptions();
 
