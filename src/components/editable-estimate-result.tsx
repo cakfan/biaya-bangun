@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { CostSplit } from "./estimate-result";
 import type { EstimateSummary } from "./estimate-result";
+import { AiAssistantPanel } from "./ai-assistant-panel";
 
 const EMPTY_OVERRIDES: PriceOverrides = {
   materialPrices: {},
@@ -123,7 +124,7 @@ export function EditableEstimateResult({
   }, []);
 
   return (
-    <section aria-label="Hasil estimasi" className="flex flex-col gap-6">
+    <section aria-label="Hasil estimasi" className="space-y-6">
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-0.5">
           <Building2 className="size-3.5" />
@@ -231,6 +232,10 @@ export function EditableEstimateResult({
           </Table>
         </CardContent>
       </Card>
+
+      <div className="sticky bottom-0 z-30 no-print -mx-4 px-4 pb-4 pt-2 bg-background/80 backdrop-blur">
+        <AiAssistantPanel estimate={displayEstimate} summary={summary} />
+      </div>
 
       <p className="text-xs leading-relaxed text-muted-foreground no-print">
         Estimasi indikatif dari koefisien AHSP &amp; harga material di {summary.city}.{" "}
