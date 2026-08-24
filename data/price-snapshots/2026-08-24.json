@@ -1,0 +1,70 @@
+{
+  "recordedAt": "2026-08-24T22:31:29.446Z",
+  "source": "Mitra10",
+  "materials": [
+    {
+      "materialSlug": "semen-portland",
+      "productName": "Scg Semen Serbaguna Komposit Pcc 40 Kg",
+      "productUrl": "https://www.mitra10.com/product/scg-smartblock-bata-ringan-7-5-cm",
+      "pricePerReferenceUnit": 1526,
+      "manualReferencePrice": 1400,
+      "cityPrices": {
+        "Surabaya": 1500,
+        "Malang": 1500,
+        "Jember": 1400,
+        "Jakarta": 1800,
+        "Bandung": 1600,
+        "Semarang": 1400,
+        "Yogyakarta": 1400
+      }
+    },
+    {
+      "materialSlug": "genteng-keramik",
+      "productName": "M-Class Genteng Utama Keramik M-1 Natural",
+      "productUrl": "https://www.mitra10.com/product/m-class-genteng-utama-keramik-m-1-natural",
+      "pricePerReferenceUnit": 11400,
+      "manualReferencePrice": 7500,
+      "cityPrices": {
+        "Surabaya": 11400,
+        "Malang": 11200,
+        "Jember": 10500,
+        "Jakarta": 13100,
+        "Bandung": 12000,
+        "Semarang": 10800,
+        "Yogyakarta": 10300
+      }
+    },
+    {
+      "materialSlug": "lem-kayu",
+      "productName": "Dextone Lem Kuning Kayu 888 2.5 Kg",
+      "productUrl": "https://www.mitra10.com/product/dextone-bond-888-2-5kg-lem-kuning",
+      "pricePerReferenceUnit": 81320,
+      "manualReferencePrice": 40000,
+      "cityPrices": {
+        "Surabaya": 81300,
+        "Malang": 79700,
+        "Jember": 74800,
+        "Jakarta": 93500,
+        "Bandung": 85400,
+        "Semarang": 77300,
+        "Yogyakarta": 73200
+      }
+    },
+    {
+      "materialSlug": "cat-tembok",
+      "productName": "Cendana Cat Tembok Interior Intrique E-108 5 Kg",
+      "productUrl": "https://www.mitra10.com/product/cat-tembok-interior-cendana-intrique-e-108-5kg-a",
+      "pricePerReferenceUnit": 34644,
+      "manualReferencePrice": 42000,
+      "cityPrices": {
+        "Surabaya": 34600,
+        "Malang": 34000,
+        "Jember": 31900,
+        "Jakarta": 39800,
+        "Bandung": 36400,
+        "Semarang": 32900,
+        "Yogyakarta": 31200
+      }
+    }
+  ]
+}
